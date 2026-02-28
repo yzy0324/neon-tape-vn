@@ -19,6 +19,8 @@ export const createInitialState = () => ({
   orderHistory: [],
   orderDrafts: {},
   pathHistory: [],
+  dialogueHistory: [],
+  readTextHashes: {},
   clearedRuns: [],
   unlockedEndings: [],
   bgmEnabled: false,
@@ -47,6 +49,8 @@ export function normalizeState(raw = {}) {
   normalized.orderHistory = Array.isArray(raw.orderHistory) ? raw.orderHistory : [];
   normalized.orderDrafts = raw.orderDrafts && typeof raw.orderDrafts === 'object' ? raw.orderDrafts : {};
   normalized.pathHistory = Array.isArray(raw.pathHistory) ? raw.pathHistory : [];
+  normalized.dialogueHistory = Array.isArray(raw.dialogueHistory) ? raw.dialogueHistory : [];
+  normalized.readTextHashes = raw.readTextHashes && typeof raw.readTextHashes === 'object' ? raw.readTextHashes : {};
   normalized.clearedRuns = Array.isArray(raw.clearedRuns) ? raw.clearedRuns : [];
   normalized.unlockedEndings = Array.isArray(raw.unlockedEndings) ? raw.unlockedEndings : [];
   normalized.bgmEnabled = typeof raw.bgmEnabled === 'boolean' ? raw.bgmEnabled : false;

@@ -46,7 +46,10 @@
     button{border:1px solid rgba(255,205,141,.5);border-radius:8px;padding:8px;background:linear-gradient(120deg,rgba(255,138,91,.2),rgba(142,88,255,.3));color:#fff3dd;cursor:pointer;font-size:13px}
     button:hover{transform:translateY(-1px);box-shadow:0 0 10px rgba(255,150,190,.5)}
     .right{display:flex;flex-direction:column;overflow:hidden}
-    .scene-head{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-size:14px}
+    .scene-head{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-size:14px;gap:10px;flex-wrap:wrap}
+    .playback-controls{display:flex;gap:8px;flex-wrap:wrap}
+    .playback-controls button{padding:6px 10px;font-size:12px}
+    .playback-controls button.active{box-shadow:0 0 12px rgba(47,243,224,.48);border-color:rgba(47,243,224,.75)}
     .story{flex:1;padding:18px;overflow:auto;line-height:1.7;font-size:16px;text-shadow:0 0 6px rgba(255,116,179,.2);white-space:pre-line}
     .choices{padding:12px;border-top:1px solid var(--line);display:grid;gap:8px;background:rgba(10,5,28,.78)}
     .drink-panel{display:grid;gap:8px;border:1px solid rgba(47,243,224,.35);border-radius:10px;padding:10px;background:rgba(16,9,36,.88)}
@@ -57,6 +60,12 @@
     .extra-item{font-size:12px;border:1px solid rgba(255,132,214,.35);border-radius:8px;padding:6px;background:rgba(22,12,48,.7)}
     .drink-preview{font-size:12px;color:#ffe38b;line-height:1.5}
     .serve-btn{background:linear-gradient(120deg,rgba(47,243,224,.2),rgba(142,88,255,.34))}
+    .history-panel{position:fixed;right:18px;bottom:18px;width:min(460px,92vw);max-height:min(58vh,520px);display:none;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:rgba(14,8,34,.95);box-shadow:0 0 16px rgba(47,243,224,.24);z-index:9}
+    .history-panel.open{display:flex}
+    .history-panel .head{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid rgba(255,132,214,.3)}
+    .history-panel .body{padding:10px 12px;overflow:auto;display:grid;gap:8px;font-size:13px;line-height:1.5}
+    .history-item{padding:8px;border:1px solid rgba(255,205,141,.25);border-radius:8px;background:rgba(20,12,46,.72)}
+    .history-item .meta{font-size:11px;color:#9df3df;margin-bottom:4px}
     .bg-layer{position:absolute;inset:0;pointer-events:none;opacity:.2;background-size:cover;transition:opacity .3s}@keyframes portraitScan{0%{transform:translateY(-2px);opacity:.16}50%{transform:translateY(2px);opacity:.24}100%{transform:translateY(-2px);opacity:.16}}
     @media (max-width:860px){.app{grid-template-columns:1fr;height:auto;margin-bottom:2vh}.left{order:2}.right{min-height:70vh}.portrait-wrap{min-height:150px}.portrait{max-height:55vw}}
   </style>
@@ -84,7 +93,7 @@
       </div>
     </aside>
     <section class="right">
-      <div class="scene-head"><strong id="sceneTitle">序章</strong><span id="clock">22:11 / 雨夜</span></div>
+      <div class="scene-head"><strong id="sceneTitle">序章</strong><span id="clock">22:11 / 雨夜</span><div class="playback-controls"><button id="showAllBtn">全文</button><button id="autoBtn">Auto</button><button id="skipBtn">Skip</button><button id="historyBtn">History</button></div></div>
       <div class="bg-layer" id="bgLayer"></div>
       <div id="story" class="story"></div>
       <div id="choices" class="choices"></div>
@@ -133,6 +142,14 @@
       </div>
       <div id="endingBody" class="archive-body"></div>
     </section>
+  </div>
+
+  <div class="history-panel" id="historyPanel" aria-hidden="true">
+    <div class="head">
+      <strong>🕘 历史回放（最近 40 条）</strong>
+      <button id="historyClose">关闭</button>
+    </div>
+    <div id="historyBody" class="body"></div>
   </div>
   <script type="module" src="js/main.js"></script>
 </body>

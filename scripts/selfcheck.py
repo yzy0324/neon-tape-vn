@@ -66,7 +66,14 @@ def main() -> None:
         "clearFlags",
         "addItem",
         "removeItem",
-        "relAtLeast"
+        "relAtLeast",
+        "Auto",
+        "Skip",
+        "History",
+        "showAllBtn",
+        "readTextHashes",
+        "dialogueHistory",
+        "historyPanel"
     ]
     for token in required_strings:
         if token not in merged:
@@ -117,10 +124,19 @@ def main() -> None:
         fail("manual save slots < 3")
     ok("manual save slots >= 3")
 
-    for token in ["sceneId", "tendency", "tendencies", "flags", "inventory", "relations", "log", "bgmEnabled", "bgmVolume", "orderHistory", "orderDrafts", "pathHistory", "clearedRuns"]:
+    for token in ["sceneId", "tendency", "tendencies", "flags", "inventory", "relations", "log", "bgmEnabled", "bgmVolume", "orderHistory", "orderDrafts", "pathHistory", "dialogueHistory", "readTextHashes", "clearedRuns"]:
         if token not in main_js:
             fail(f"missing save payload key indicator: {token}")
     ok("save payload includes required keys")
+
+
+    history_limit_match = re.search(r"const\s+HISTORY_PANEL_LIMIT\s*=\s*(\d+)", main_js)
+    if not history_limit_match:
+        fail("missing HISTORY_PANEL_LIMIT")
+    history_limit = int(history_limit_match.group(1))
+    if history_limit < 30:
+        fail(f"history panel limit too low: {history_limit} (expected >= 30)")
+    ok(f"history panel limit >= 30 ({history_limit})")
 
     print("\nSelf-check passed.")
 

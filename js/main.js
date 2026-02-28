@@ -5,12 +5,17 @@ import { renderDrinkPanel } from './drink.js';
 import { IMPORTANT_FLAG_META, applyStateDelta, createInitialState, hasCondition, normalizeState } from './state.js';
 
 const SAVE_PREFIX = 'neonTape_';
-const SAVE_SCHEMA_VERSION = 5;
+const SAVE_SCHEMA_VERSION = 6;
 const AUTO_SLOT = 'auto';
 const TITLE_SCENE = '__TITLE__';
 const META_ARCHIVE_KEY = `${SAVE_PREFIX}endingArchive`;
 const REPLAY_SLOT = 'slot3';
 const ROUTE_SCENE_MAP = { A: 's10A', B: 's10B', C: 's10C' };
+const TYPEWRITER_SPEED = 24;
+const AUTO_ADVANCE_DELAY = 850;
+const SKIP_ADVANCE_DELAY = 120;
+const HISTORY_LIMIT = 60;
+const HISTORY_PANEL_LIMIT = 40;
 
 const state = createInitialState();
 
@@ -47,10 +52,28 @@ const archivePanelEl = document.getElementById('archivePanel');
 const archiveBodyEl = document.getElementById('archiveBody');
 const endingPanelEl = document.getElementById('endingPanel');
 const endingBodyEl = document.getElementById('endingBody');
+const showAllBtn = document.getElementById('showAllBtn');
+const autoBtn = document.getElementById('autoBtn');
+const skipBtn = document.getElementById('skipBtn');
+const historyBtn = document.getElementById('historyBtn');
+const historyPanelEl = document.getElementById('historyPanel');
+const historyBodyEl = document.getElementById('historyBody');
+const historyCloseBtn = document.getElementById('historyClose');
 const synth = new BgmSynth();
 
 const endingMeta = loadEndingMeta();
 const replay = { active: false, record: null, index: 0 };
+const playback = {
+  timer: null,
+  fullText: '',
+  shownText: '',
+  sceneId: null,
+  textHash: null,
+  typingDone: true,
+  auto: false,
+  skip: false,
+  autoTimer: null
+};
 
 
 function loadEndingMeta() {
@@ -108,6 +131,115 @@ function ensureArchiveSync() {
 }
 
 const clamp = (val, min, max) => Math.min(max, Math.max(min, val));
+
+function textHash(input = '') {
+  let hash = 5381;
+  for (let i = 0; i < input.length; i += 1) hash = ((hash << 5) + hash) ^ input.charCodeAt(i);
+  return (hash >>> 0).toString(16);
+}
+
+function stopTyping() {
+  if (playback.timer) clearTimeout(playback.timer);
+  playback.timer = null;
+  playback.typingDone = true;
+}
+
+function stopAutoAdvance() {
+  if (playback.autoTimer) clearTimeout(playback.autoTimer);
+  playback.autoTimer = null;
+}
+
+function isCurrentTextRead() {
+  if (!playback.sceneId || !playback.textHash) return false;
+  return !!state.readTextHashes[`${playback.sceneId}:${playback.textHash}`];
+}
+
+function markCurrentTextRead() {
+  if (!playback.sceneId || !playback.textHash) return;
+  state.readTextHashes[`${playback.sceneId}:${playback.textHash}`] = true;
+}
+
+function appendDialogueHistory(scene, text) {
+  if (!scene || !text) return;
+  const speaker = cast[scene.speaker]?.name || '旁白';
+  const entry = { sceneId: state.current, title: scene.title, speaker, text, at: Date.now() };
+  state.dialogueHistory.push(entry);
+  if (state.dialogueHistory.length > HISTORY_LIMIT) {
+    state.dialogueHistory = state.dialogueHistory.slice(-HISTORY_LIMIT);
+  }
+}
+
+function renderHistoryPanel() {
+  const rows = state.dialogueHistory.slice(-HISTORY_PANEL_LIMIT).reverse();
+  historyBodyEl.innerHTML = rows.length
+    ? rows.map((item) => `<div class="history-item"><div class="meta">${item.title} · ${item.speaker}</div><div>${item.text}</div></div>`).join('')
+    : '<div class="tiny">暂无历史记录</div>';
+}
+
+function updatePlaybackButtons() {
+  autoBtn.classList.toggle('active', playback.auto);
+  skipBtn.classList.toggle('active', playback.skip);
+  autoBtn.textContent = playback.auto ? 'Auto: ON' : 'Auto';
+  skipBtn.textContent = playback.skip ? 'Skip: ON' : 'Skip';
+}
+
+function showFullText() {
+  if (!playback.fullText) return;
+  stopTyping();
+  playback.shownText = playback.fullText;
+  storyEl.textContent = playback.fullText;
+  markCurrentTextRead();
+}
+
+function queueAutoAdvance() {
+  stopAutoAdvance();
+  if (state.current === TITLE_SCENE || state.current === 'END' || replay.active) return;
+  const shouldSkip = playback.skip && isCurrentTextRead();
+  if (!playback.auto && !shouldSkip) return;
+  if (playback.skip && !isCurrentTextRead()) return;
+  const firstButton = choiceEl.querySelector('button');
+  if (!firstButton) return;
+  playback.autoTimer = setTimeout(() => firstButton.click(), shouldSkip ? SKIP_ADVANCE_DELAY : AUTO_ADVANCE_DELAY);
+}
+
+function runTypewriter(scene, text) {
+  stopTyping();
+  stopAutoAdvance();
+  playback.fullText = text || '';
+  playback.shownText = '';
+  playback.sceneId = state.current;
+  playback.textHash = textHash(playback.fullText);
+  playback.typingDone = playback.fullText.length === 0;
+  const alreadyRead = isCurrentTextRead();
+
+  const instant = playback.skip && alreadyRead;
+  if (instant) {
+    showFullText();
+    queueAutoAdvance();
+    return;
+  }
+
+  if (!playback.fullText) {
+    storyEl.textContent = '';
+    markCurrentTextRead();
+    queueAutoAdvance();
+    return;
+  }
+
+  const speed = Math.max(8, TYPEWRITER_SPEED);
+  const step = () => {
+    if (playback.shownText.length >= playback.fullText.length) {
+      stopTyping();
+      markCurrentTextRead();
+      queueAutoAdvance();
+      return;
+    }
+    playback.shownText = playback.fullText.slice(0, playback.shownText.length + 1);
+    storyEl.textContent = playback.shownText;
+    playback.timer = setTimeout(step, speed);
+  };
+  step();
+}
 
 function tendencyPairs() {
   return {
@@ -363,6 +495,8 @@ function makeSavePayload() {
     orderHistory: state.orderHistory,
     orderDrafts: state.orderDrafts,
     pathHistory: state.pathHistory,
+    dialogueHistory: state.dialogueHistory,
+    readTextHashes: state.readTextHashes,
     clearedRuns: state.clearedRuns,
     savedAt: new Date().toISOString()
   };
@@ -385,18 +519,24 @@ function parseSaveData(rawData) {
     orderHistory: data.orderHistory,
     orderDrafts: data.orderDrafts,
     pathHistory: data.pathHistory,
+    dialogueHistory: data.dialogueHistory,
+    readTextHashes: data.readTextHashes,
     clearedRuns: data.clearedRuns
   });
   return { ...normalized, schemaVersion: Number.isInteger(data.schemaVersion) ? data.schemaVersion : 1 };
 }
 
 function applySaveData(data) {
+  stopTyping();
+  stopAutoAdvance();
   Object.assign(state, normalizeState(data));
   synth.setVolume(state.bgmVolume);
   updateBgmUI();
   ensureArchiveSync();
   renderArchive();
   renderEndingVault();
+  renderHistoryPanel();
+  updatePlaybackButtons();
 }
 
 function save(slot) { localStorage.setItem(`${SAVE_PREFIX}${slot}`, JSON.stringify(makeSavePayload())); }
@@ -405,8 +545,12 @@ function autoSave(isEnd) { save(AUTO_SLOT); if (isEnd) save('ending'); }
 function showTitle() {
   state.current = TITLE_SCENE;
   state.routeLock = null;
+  stopTyping();
+  stopAutoAdvance();
   titleEl.textContent = '标题：NEON TAPE_017';
-  storyEl.textContent = '雨夜、磁带、三方倒计时。\n\n你是酒吧“太阳雨”的夜班调酒师，也是匿名情报中继点。\n请选择开始新卷，或读取旧存档继续。';
+  playback.fullText = '雨夜、磁带、三方倒计时。\n\n你是酒吧“太阳雨”的夜班调酒师，也是匿名情报中继点。\n请选择开始新卷，或读取旧存档继续。';
+  playback.shownText = playback.fullText;
+  storyEl.textContent = playback.fullText;
   choiceEl.innerHTML = '';
   const startBtn = document.createElement('button');
   startBtn.textContent = '开始新卷';
@@ -420,6 +564,8 @@ function showTitle() {
   ensureArchiveSync();
   renderArchive();
   renderEndingVault();
+  renderHistoryPanel();
+  updatePlaybackButtons();
 }
 
 function showEnding(route) {
@@ -437,6 +583,8 @@ function showEnding(route) {
   if (endingMeta.runs.length > 12) endingMeta.runs.shift();
   persistEndingMeta();
   addLog(`[结局] ${end.title}`);
+  stopTyping();
+  stopAutoAdvance();
   titleEl.textContent = '结局回放';
   const historyHtml = state.choiceHistory.slice(-8).map((item, idx) => `<li>${idx + 1}. <strong>${item.scene}</strong>：${item.choice}</li>`).join('');
   storyEl.innerHTML = `<div style="color:#ffe38b;font-size:24px;margin-bottom:12px;">${end.title}</div><div>${end.text}</div><hr style="border-color:rgba(255,225,170,.4);margin:18px 0;"><div style="font-size:14px;color:#ffdca7;">关键选择回顾：</div><ol>${historyHtml || '<li>暂无可回顾选择。</li>'}</ol><div style="margin-top:8px;color:#9df3df;font-size:13px;">已解锁结局：${state.unlockedEndings.join(' / ') || '无'}</div>`;
@@ -508,27 +656,39 @@ function renderScene() {
   const scene = scenes[state.current];
   if (!scene) return showTitle();
 
+  stopAutoAdvance();
   markSceneVisit(state.current);
   titleEl.textContent = scene.title;
-  storyEl.textContent = getSceneText(scene) || '';
+  const sceneText = getSceneText(scene) || '';
   bgLayerEl.style.background = bgStyles[scene.bg] || bgStyles.bar;
   const c = cast[scene.speaker];
   setPortrait(c, scene.expression || 'neutral');
   charInfoEl.textContent = `${c.name}｜${c.desc}`;
 
-  addLog(`[${scene.title}]\n${storyEl.textContent}`);
+  addLog(`[${scene.title}]
+${sceneText}`);
+  appendDialogueHistory(scene, sceneText);
   renderLog();
   renderBars();
   renderArchive();
+  renderHistoryPanel();
 
   if (scene.type === 'order') {
+    stopTyping();
+    playback.sceneId = state.current;
+    playback.fullText = sceneText;
+    playback.textHash = textHash(sceneText);
+    storyEl.textContent = sceneText;
+    markCurrentTextRead();
     renderOrderScene(scene);
   } else {
     renderChoiceScene(scene);
+    runTypewriter(scene, sceneText);
   }
 
   autoSave(false);
 }
+
 
 function load(slot) {
   const raw = localStorage.getItem(`${SAVE_PREFIX}${slot}`) || localStorage.getItem(`${SAVE_PREFIX}${AUTO_SLOT}`);
@@ -605,6 +765,29 @@ bgmBtn.onclick = async () => {
   updateBgmUI();
   autoSave(false);
 };
+
+showAllBtn.onclick = () => {
+  showFullText();
+  queueAutoAdvance();
+};
+autoBtn.onclick = () => {
+  playback.auto = !playback.auto;
+  updatePlaybackButtons();
+  queueAutoAdvance();
+};
+skipBtn.onclick = () => {
+  playback.skip = !playback.skip;
+  updatePlaybackButtons();
+  if (playback.skip && isCurrentTextRead()) {
+    showFullText();
+  }
+  queueAutoAdvance();
+};
+historyBtn.onclick = () => {
+  historyPanelEl.classList.toggle('open');
+  if (historyPanelEl.classList.contains('open')) renderHistoryPanel();
+};
+historyCloseBtn.onclick = () => historyPanelEl.classList.remove('open');
 
 document.querySelectorAll('[data-save]').forEach((btn) => { btn.onclick = () => { save(btn.dataset.save); saveStatusEl.textContent = `已保存到 ${btn.dataset.save.toUpperCase()}`; }; });
 document.querySelectorAll('[data-load]').forEach((btn) => { btn.onclick = () => load(btn.dataset.load); });
