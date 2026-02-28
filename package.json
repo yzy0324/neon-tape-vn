@@ -5,8 +5,7 @@
   "description": "Static VN CI smoke tooling",
   "scripts": {
     "smoke": "node scripts/smoke_test.mjs",
-    "balance:report": "node tools/balance_report.js",
-    "check:noscroll": "node tests/basic_check.js"
+    "balance:report": "node tools/balance_report.js"
   },
   "devDependencies": {
     "playwright": "^1.52.0"
