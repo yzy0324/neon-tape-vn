@@ -19,6 +19,7 @@ const HISTORY_LIMIT = 60;
 const HISTORY_PANEL_LIMIT = 40;
 const ROUTE_DIAG_LIMIT = 8;
 const PRE_END_SCENE_ID = 's09';
+const DEV_HOSTS = new Set(['localhost', '127.0.0.1', '0.0.0.0', '::1']);
 
 const state = createInitialState();
 
@@ -95,6 +96,30 @@ const playback = {
   skip: false,
   autoTimer: null
 };
+
+function isDevEnv() {
+  return DEV_HOSTS.has(window.location.hostname);
+}
+
+function updateViewportHeightVar() {
+  const vh = window.innerHeight * 0.01;
+  document.documentElement.style.setProperty('--vh', `${vh}px`);
+}
+
+function reportHorizontalOverflow(stage = 'runtime') {
+  const scrollWidth = document.documentElement.scrollWidth;
+  const viewportWidth = window.innerWidth;
+  const pass = scrollWidth <= viewportWidth + 1;
+  if (isDevEnv()) {
+    console.info(`[layout-check] ${stage}`, { pass, scrollWidth, viewportWidth });
+  }
+  return pass;
+}
+
+function togglePanelWithLayoutCheck(panelEl) {
+  panelEl.classList.toggle('open');
+  requestAnimationFrame(() => reportHorizontalOverflow(`toggle:${panelEl.id}`));
+}
 
 
 function loadEndingMeta() {
@@ -916,10 +941,10 @@ function importSave(slot) {
 }
 
 document.getElementById('resetBtn').onclick = resetGame;
-document.getElementById('savePanelBtn').onclick = () => savePanelEl.classList.toggle('open');
-document.getElementById('savePanelClose').onclick = () => savePanelEl.classList.toggle('open');
-document.getElementById('archivePanelBtn').onclick = () => archivePanelEl.classList.toggle('open');
-document.getElementById('endingPanelBtn').onclick = () => { renderEndingVault(); endingPanelEl.classList.toggle('open'); };
+document.getElementById('savePanelBtn').onclick = () => togglePanelWithLayoutCheck(savePanelEl);
+document.getElementById('savePanelClose').onclick = () => togglePanelWithLayoutCheck(savePanelEl);
+document.getElementById('archivePanelBtn').onclick = () => togglePanelWithLayoutCheck(archivePanelEl);
+document.getElementById('endingPanelBtn').onclick = () => { renderEndingVault(); togglePanelWithLayoutCheck(endingPanelEl); };
 document.getElementById('archivePanelClose').onclick = () => archivePanelEl.classList.remove('open');
 document.getElementById('endingPanelClose').onclick = () => endingPanelEl.classList.remove('open');
 volumeSlider.oninput = () => {
@@ -1025,7 +1050,7 @@ skipBtn.onclick = () => {
   queueAutoAdvance();
 };
 historyBtn.onclick = () => {
-  historyPanelEl.classList.toggle('open');
+  togglePanelWithLayoutCheck(historyPanelEl);
   if (historyPanelEl.classList.contains('open')) renderHistoryPanel();
 };
 historyCloseBtn.onclick = () => historyPanelEl.classList.remove('open');
@@ -1059,13 +1084,13 @@ document.addEventListener('keydown', (event) => {
 
   if (event.key.toLowerCase() === 's') {
     event.preventDefault();
-    savePanelEl.classList.toggle('open');
+    togglePanelWithLayoutCheck(savePanelEl);
     return;
   }
 
   if (event.key.toLowerCase() === 'l') {
     event.preventDefault();
-    archivePanelEl.classList.toggle('open');
+    togglePanelWithLayoutCheck(archivePanelEl);
   }
 });
 
@@ -1078,6 +1103,15 @@ hidePortraitToggle?.addEventListener('change', persistUiPrefs);
 compactUiToggle?.addEventListener('change', persistUiPrefs);
 
 loadUiPrefs();
+updateViewportHeightVar();
+window.addEventListener('resize', () => {
+  updateViewportHeightVar();
+  reportHorizontalOverflow('resize');
+});
+window.addEventListener('orientationchange', () => {
+  updateViewportHeightVar();
+  reportHorizontalOverflow('orientationchange');
+});
 loadStoredAudioSettings();
 updateBgmUI();
 ensureArchiveSync();
@@ -1095,3 +1129,5 @@ if (autoRaw) {
 } else {
   showTitle();
 }
+
+reportHorizontalOverflow('initial');

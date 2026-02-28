@@ -93,6 +93,17 @@ node tools/balance_report.js
 npm run balance:report
 ```
 
+### 手动布局防溢出验证（新增）
+
+1. 启动静态服务：`python -m http.server 8000`。
+2. 分别切换到 `1366×768`、`1920×1080`、`390×844` 视口。
+3. 在每个视口中执行 3 次剧情切换，并依次打开/关闭：存档、线索板、结局档案、History 面板。
+4. 打开 DevTools Console，确认出现 `[layout-check] ... { pass: true }` 日志，且页面无横向滚动条。
+
+布局自检实现点：
+- CSS：`html/body overflow-x:hidden`、`100dvh + --vh`、面板 `max-height + overflow:auto`、文本 `overflow-wrap:anywhere`。
+- 运行时：`js/main.js` 在初始化/resize/面板切换时输出横向溢出检测结果（`scrollWidth <= innerWidth`）。
+
 
 ## 剧情 Scene Schema（data/story.js）
 
