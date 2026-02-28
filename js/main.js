@@ -5,7 +5,7 @@ import { renderDrinkPanel } from './drink.js';
 import { IMPORTANT_FLAG_META, applyStateDelta, createInitialState, hasCondition, normalizeState } from './state.js';
 
 const SAVE_PREFIX = 'neonTape_';
-const SAVE_SCHEMA_VERSION = 7;
+const SAVE_SCHEMA_VERSION = 8;
 const AUTO_SLOT = 'auto';
 const TITLE_SCENE = '__TITLE__';
 const META_ARCHIVE_KEY = `${SAVE_PREFIX}endingArchive`;
@@ -17,6 +17,8 @@ const AUTO_ADVANCE_DELAY = 850;
 const SKIP_ADVANCE_DELAY = 120;
 const HISTORY_LIMIT = 60;
 const HISTORY_PANEL_LIMIT = 40;
+const ROUTE_DIAG_LIMIT = 8;
+const PRE_END_SCENE_ID = 's09';
 
 const state = createInitialState();
 
@@ -44,6 +46,8 @@ const logPanelEl = document.getElementById('logPanel');
 const bgLayerEl = document.getElementById('bgLayer');
 const bgmBtn = document.getElementById('bgmBtn');
 const routeHintEl = document.getElementById('routeHint');
+const routeForecastEl = document.getElementById('routeForecast');
+const routeDiagnosisListEl = document.getElementById('routeDiagnosisList');
 const savePanelEl = document.getElementById('savePanel');
 const saveStatusEl = document.getElementById('saveStatus');
 const saveTextEl = document.getElementById('saveTransferText');
@@ -115,6 +119,37 @@ function summarizeEffect(effect = {}) {
   };
   const parts = Object.entries(effect).map(([k, v]) => `${labels[k] || k}${v}`);
   return parts.length ? parts.join(' / ') : '无倾向变化';
+}
+
+function normalizeEffectVector(effect = {}) {
+  const safe = effect && typeof effect === 'object' ? effect : {};
+  const rational = (Number(safe.logic) || 0) - (Number(safe.emotion) || 0);
+  const cooperate = (Number(safe.coop) || 0) - (Number(safe.oppose) || 0);
+  const explore = (Number(safe.explore) || 0) - (Number(safe.preserve) || 0);
+  return { rational, cooperate, explore };
+}
+
+function signedText(value) {
+  return value > 0 ? `+${value}` : String(value);
+}
+
+function routeDistanceByVector(routeKey, vector) {
+  const target = ROUTES[routeKey].target;
+  return Math.abs(vector.rational - target.rational) + Math.abs(vector.cooperate - target.cooperate) + Math.abs(vector.explore - target.explore);
+}
+
+function buildRouteForecast() {
+  const entries = Object.keys(ROUTES).map((key) => ({
+    key,
+    distance: routeDistanceByVector(key, state.tendencies)
+  })).sort((a, b) => a.distance - b.distance);
+  const [first, second] = entries;
+  const confidence = Math.max(8, Math.min(95, 100 - first.distance * 9));
+  return {
+    routeCode: first.key,
+    confidence,
+    spread: second ? second.distance - first.distance : 0
+  };
 }
 
 function markSceneVisit(sceneId) {
@@ -293,11 +328,41 @@ function nearestRoute() {
   return Object.keys(ROUTES).map((key) => ({ key, distance: routeDistance(key) })).sort((a, b) => a.distance - b.distance)[0].key;
 }
 
+function renderRouteDiagnosis() {
+  const recentChoices = (state.choiceHistory || []).slice(-ROUTE_DIAG_LIMIT).reverse();
+  if (!recentChoices.length) {
+    routeDiagnosisListEl.innerHTML = '<div class="tiny">尚无可诊断路径，做出选择后会显示每一步如何推高/拉低三维倾向。</div>';
+    return;
+  }
+  const html = recentChoices.map((entry, idx) => {
+    const delta = entry.tendencyDelta || normalizeEffectVector(entry.effect || {});
+    const rows = [
+      ['理性', delta.rational],
+      ['合作', delta.cooperate],
+      ['探索', delta.explore]
+    ].map(([label, value]) => {
+      const width = `${Math.min(100, Math.max(0, Math.abs(Number(value) || 0) * 24))}%`;
+      return `<div class="diag-bar-row"><span>${label}</span><div class="diag-mini"><span style="width:${width}"></span></div><em>${signedText(Number(value) || 0)}</em></div>`;
+    }).join('');
+    return `<article class="diag-item"><div class="diag-meta">#${idx + 1} ${entry.scene || entry.sceneId || '未知场景'} · ${entry.choice || '未知选项'}</div><div class="diag-bars">${rows}</div></article>`;
+  }).join('');
+  routeDiagnosisListEl.innerHTML = html;
+}
+
 function renderBars() {
   document.getElementById('barLogic').style.width = toPercent(state.tendencies.rational);
   document.getElementById('barCoop').style.width = toPercent(state.tendencies.cooperate);
   document.getElementById('barExplore').style.width = toPercent(state.tendencies.explore);
-  routeHintEl.textContent = state.routeLock ? `路线已锁定：${ROUTES[state.routeLock].name}。` : `路线趋近提示：${ROUTES[nearestRoute()].hint}`;
+  const forecast = buildRouteForecast();
+  routeHintEl.textContent = state.routeLock ? `路线已锁定：${ROUTES[state.routeLock].name}。` : `路线趋近提示：${ROUTES[forecast.routeCode].hint}`;
+  if (state.routeLock) {
+    routeForecastEl.textContent = `终章预测：已锁定为代号 ${state.routeLock}。`;
+  } else if (state.current === PRE_END_SCENE_ID) {
+    routeForecastEl.textContent = `终章预测：代号 ${forecast.routeCode}（置信 ${forecast.confidence}% / 差距 ${forecast.spread}）。提示仅反映倾向分布，不揭示结局名。`;
+  } else {
+    routeForecastEl.textContent = `终章预测：当前最接近代号 ${forecast.routeCode}（置信 ${forecast.confidence}%）。`;
+  }
+  renderRouteDiagnosis();
 }
 
 function renderArchive() {
@@ -730,7 +795,14 @@ function renderChoiceScene(scene) {
       const prevFlags = Object.keys(state.flags).length;
       applyEffect(ch.effect);
       applyStateDelta(state, ch);
-      state.choiceHistory.push({ sceneId: state.current, scene: scene.title, choice: ch.text, effectSummary: summarizeEffect(ch.effect) });
+      state.choiceHistory.push({
+        sceneId: state.current,
+        scene: scene.title,
+        choice: ch.text,
+        effect: ch.effect || {},
+        tendencyDelta: normalizeEffectVector(ch.effect),
+        effectSummary: summarizeEffect(ch.effect)
+      });
       addLog(`▶ ${ch.text}`);
       if (state.inventory.length > prevInventoryCount || Object.keys(state.flags).length > prevFlags) synth.playSfx('clue');
       else synth.playSfx('confirm');

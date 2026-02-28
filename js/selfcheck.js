@@ -12,7 +12,8 @@ const files = {
   story: path.join(ROOT, 'data', 'story.js'),
   drinks: path.join(ROOT, 'data', 'drinks.js'),
   state: path.join(ROOT, 'js', 'state.js'),
-  validator: path.join(ROOT, 'tools', 'validate_story.js')
+  validator: path.join(ROOT, 'tools', 'validate_story.js'),
+  balanceReport: path.join(ROOT, 'tools', 'balance_report.js')
 };
 
 function fail(msg) {
@@ -35,6 +36,7 @@ const story = read(files.story);
 const drinks = read(files.drinks);
 const state = read(files.state);
 read(files.validator);
+const balanceReport = read(files.balanceReport);
 
 const sceneCount = (story.match(/\bs\d{2}[A-C]?\s*:\s*{/g) || []).length;
 if (sceneCount < 12) fail(`scene count ${sceneCount} < 12`);
@@ -65,6 +67,14 @@ for (const key of requiredKeys) {
   if (!main.includes(key)) fail(`missing save key token: ${key}`);
 }
 ok('save payload tokens exist');
+
+for (const token of ['routeForecast', 'routeDiagnosisList', 'normalizeEffectVector', 'tendencyDelta', '终章预测：代号']) {
+  if (!(`${html}\n${main}`).includes(token)) fail(`missing diagnosis token: ${token}`);
+}
+ok('route diagnosis + forecast tokens exist');
+
+if (!balanceReport.includes('choice balance report') || !balanceReport.includes('imbalance hints')) fail('balance report script markers missing');
+ok('balance report script markers exist');
 
 const keyboardTokens = ["event.key === 'Enter'", "['1', '2', '3']", "event.key.toLowerCase() === 's'", "event.key.toLowerCase() === 'l'"];
 for (const token of keyboardTokens) {

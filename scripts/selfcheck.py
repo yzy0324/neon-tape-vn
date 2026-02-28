@@ -18,6 +18,7 @@ DRINK_PANEL_JS = ROOT / "js" / "drink.js"
 STATE_JS = ROOT / "js" / "state.js"
 AUDIO_JS = ROOT / "js" / "audio.js"
 STORY_VALIDATOR = ROOT / "tools" / "validate_story.js"
+BALANCE_REPORT = ROOT / "tools" / "balance_report.js"
 CI_YML = ROOT / ".github" / "workflows" / "ci.yml"
 
 
@@ -31,7 +32,7 @@ def ok(message: str) -> None:
 
 
 def main() -> None:
-    for path in [INDEX, MAIN_JS, DATA_JS, STORY_JS, DRINKS_JS, DRINK_PANEL_JS, STATE_JS, AUDIO_JS, STORY_VALIDATOR, CI_YML]:
+    for path in [INDEX, MAIN_JS, DATA_JS, STORY_JS, DRINKS_JS, DRINK_PANEL_JS, STATE_JS, AUDIO_JS, STORY_VALIDATOR, BALANCE_REPORT, CI_YML]:
         if not path.exists():
             fail(f"missing required file: {path.relative_to(ROOT)}")
 
@@ -81,6 +82,8 @@ def main() -> None:
         "readTextHashes",
         "dialogueHistory",
         "historyPanel",
+        "routeForecast",
+        "routeDiagnosisList",
         "audioUnlockBtn",
         "masterVolume",
         "ambienceVolume",
@@ -140,6 +143,17 @@ def main() -> None:
         if token not in main_js:
             fail(f"missing save payload key indicator: {token}")
     ok("save payload includes required keys")
+
+    for token in ["normalizeEffectVector", "tendencyDelta", "终章预测：代号"]:
+        if token not in main_js:
+            fail(f"missing route diagnosis token: {token}")
+    ok("route diagnosis + pre-ending forecast tokens present")
+
+    balance_report_js = BALANCE_REPORT.read_text(encoding="utf-8")
+    for token in ["choice balance report", "imbalance hints", "top extreme choices"]:
+        if token not in balance_report_js:
+            fail(f"missing balance report token: {token}")
+    ok("balance report tokens present")
 
 
     for token in ["setAmbienceForScene", "playSfx", "music", "ambience", "sfx"]:
