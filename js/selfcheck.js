@@ -11,7 +11,8 @@ const files = {
   main: path.join(ROOT, 'js', 'main.js'),
   story: path.join(ROOT, 'data', 'story.js'),
   drinks: path.join(ROOT, 'data', 'drinks.js'),
-  state: path.join(ROOT, 'js', 'state.js')
+  state: path.join(ROOT, 'js', 'state.js'),
+  validator: path.join(ROOT, 'tools', 'validate_story.js')
 };
 
 function fail(msg) {
@@ -33,6 +34,7 @@ const main = read(files.main);
 const story = read(files.story);
 const drinks = read(files.drinks);
 const state = read(files.state);
+read(files.validator);
 
 const sceneCount = (story.match(/\bs\d{2}[A-C]?\s*:\s*{/g) || []).length;
 if (sceneCount < 12) fail(`scene count ${sceneCount} < 12`);
@@ -75,5 +77,8 @@ ok('aria-label exists');
 
 if (!state.includes('hasCondition')) fail('state condition checker missing');
 ok('state condition checker exists');
+
+if (!story.includes('STORY_SCHEMA') || !story.includes('STORY_FLAG_WHITELIST')) fail('story schema exports missing');
+ok('story schema exports exist');
 
 console.log('\nSelf-check passed.');

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import pathlib
 import re
+import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -16,6 +17,7 @@ DRINKS_JS = ROOT / "data" / "drinks.js"
 DRINK_PANEL_JS = ROOT / "js" / "drink.js"
 STATE_JS = ROOT / "js" / "state.js"
 AUDIO_JS = ROOT / "js" / "audio.js"
+STORY_VALIDATOR = ROOT / "tools" / "validate_story.js"
 
 
 def fail(message: str) -> None:
@@ -28,7 +30,7 @@ def ok(message: str) -> None:
 
 
 def main() -> None:
-    for path in [INDEX, MAIN_JS, DATA_JS, STORY_JS, DRINKS_JS, DRINK_PANEL_JS, STATE_JS, AUDIO_JS]:
+    for path in [INDEX, MAIN_JS, DATA_JS, STORY_JS, DRINKS_JS, DRINK_PANEL_JS, STATE_JS, AUDIO_JS, STORY_VALIDATOR]:
         if not path.exists():
             fail(f"missing required file: {path.relative_to(ROOT)}")
 
@@ -150,6 +152,13 @@ def main() -> None:
     if history_limit < 30:
         fail(f"history panel limit too low: {history_limit} (expected >= 30)")
     ok(f"history panel limit >= 30 ({history_limit})")
+
+    
+
+    validator_result = subprocess.run(["node", str(STORY_VALIDATOR)], cwd=ROOT, capture_output=True, text=True)
+    if validator_result.returncode != 0:
+        fail(f"story validator failed:\n{validator_result.stdout}{validator_result.stderr}")
+    ok("story validator passed")
 
     print("\nSelf-check passed.")
 
