@@ -730,6 +730,9 @@ function showEnding(route) {
     C: { title: '结局C【磁带群星】', text: '你把吧台变成去中心化记忆节点，每一次点单都能写入可验证证词。' }
   };
   const end = endings[route];
+  const sideQuestSuffix = state.flags.ghostHandshake
+    ? '<p style="margin-top:10px;color:#c8ffe7;">【灰匣注释】你在终章前完成了三方共同签名校验，最终声明追加了可交叉验证段落。</p>'
+    : '';
   if (!state.unlockedEndings.includes(route)) state.unlockedEndings.push(route);
   if (!endingMeta.unlockedEndings.includes(route)) endingMeta.unlockedEndings.push(route);
   const runRecord = buildRunRecord(route);
@@ -742,7 +745,7 @@ function showEnding(route) {
   stopAutoAdvance();
   titleEl.textContent = '结局回放';
   const historyHtml = state.choiceHistory.slice(-8).map((item, idx) => `<li>${idx + 1}. <strong>${item.scene}</strong>：${item.choice}</li>`).join('');
-  storyEl.innerHTML = `<div style="color:#ffe38b;font-size:24px;margin-bottom:12px;">${end.title}</div><div>${end.text}</div><hr style="border-color:rgba(255,225,170,.4);margin:18px 0;"><div style="font-size:14px;color:#ffdca7;">关键选择回顾：</div><ol>${historyHtml || '<li>暂无可回顾选择。</li>'}</ol><div style="margin-top:8px;color:#9df3df;font-size:13px;">已解锁结局：${state.unlockedEndings.join(' / ') || '无'}</div>`;
+  storyEl.innerHTML = `<div style="color:#ffe38b;font-size:24px;margin-bottom:12px;">${end.title}</div><div>${end.text}</div>${sideQuestSuffix}<hr style="border-color:rgba(255,225,170,.4);margin:18px 0;"><div style="font-size:14px;color:#ffdca7;">关键选择回顾：</div><ol>${historyHtml || '<li>暂无可回顾选择。</li>'}</ol><div style="margin-top:8px;color:#9df3df;font-size:13px;">已解锁结局：${state.unlockedEndings.join(' / ') || '无'}</div>`;
   choiceEl.innerHTML = '';
   const titleBtn = document.createElement('button');
   titleBtn.textContent = '返回标题';

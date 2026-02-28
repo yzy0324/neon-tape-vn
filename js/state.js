@@ -4,7 +4,8 @@ export const IMPORTANT_FLAG_META = {
   policeWarrant: '警方搜查令',
   memoryTape: '记忆磁带',
   barShielded: '酒吧防护上线',
-  truthLeakDraft: '真相泄露草案'
+  truthLeakDraft: '真相泄露草案',
+  ghostHandshake: '灰匣共同签名'
 };
 
 export const createInitialState = () => ({

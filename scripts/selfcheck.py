@@ -13,6 +13,8 @@ INDEX = ROOT / "index.html"
 MAIN_JS = ROOT / "js" / "main.js"
 DATA_JS = ROOT / "js" / "data.js"
 STORY_JS = ROOT / "data" / "story.js"
+CHAP1_JS = ROOT / "data" / "chapters" / "chap1.js"
+CHAP2_JS = ROOT / "data" / "chapters" / "chap2.js"
 DRINKS_JS = ROOT / "data" / "drinks.js"
 DRINK_PANEL_JS = ROOT / "js" / "drink.js"
 STATE_JS = ROOT / "js" / "state.js"
@@ -32,7 +34,7 @@ def ok(message: str) -> None:
 
 
 def main() -> None:
-    for path in [INDEX, MAIN_JS, DATA_JS, STORY_JS, DRINKS_JS, DRINK_PANEL_JS, STATE_JS, AUDIO_JS, STORY_VALIDATOR, BALANCE_REPORT, CI_YML]:
+    for path in [INDEX, MAIN_JS, DATA_JS, STORY_JS, CHAP1_JS, CHAP2_JS, DRINKS_JS, DRINK_PANEL_JS, STATE_JS, AUDIO_JS, STORY_VALIDATOR, BALANCE_REPORT, CI_YML]:
         if not path.exists():
             fail(f"missing required file: {path.relative_to(ROOT)}")
 
@@ -40,6 +42,8 @@ def main() -> None:
     main_js = MAIN_JS.read_text(encoding="utf-8")
     data_js = DATA_JS.read_text(encoding="utf-8")
     story_js = STORY_JS.read_text(encoding="utf-8")
+    chap1_js = CHAP1_JS.read_text(encoding="utf-8")
+    chap2_js = CHAP2_JS.read_text(encoding="utf-8")
     drinks_js = DRINKS_JS.read_text(encoding="utf-8")
     drink_panel_js = DRINK_PANEL_JS.read_text(encoding="utf-8")
     state_js = STATE_JS.read_text(encoding="utf-8")
@@ -47,7 +51,7 @@ def main() -> None:
 
     ci_yml = CI_YML.read_text(encoding="utf-8")
 
-    merged = "\n".join([html, main_js, data_js, story_js, drinks_js, drink_panel_js, state_js, audio_js])
+    merged = "\n".join([html, main_js, data_js, story_js, chap1_js, chap2_js, drinks_js, drink_panel_js, state_js, audio_js])
 
     required_strings = [
         "NEON TAPE_017",
@@ -95,12 +99,13 @@ def main() -> None:
             fail(f"missing required string: {token}")
     ok("key strings present")
 
-    scene_count = len(re.findall(r"\bs\d{2}[A-C]?\s*:\s*{", story_js))
+    chapter_story = "\n".join([chap1_js, chap2_js])
+    scene_count = len(re.findall(r"\bs\d{2}[A-C]?\s*:\s*{", chapter_story))
     if scene_count < 12:
         fail(f"scene count too low: {scene_count} (expected >= 12)")
     ok(f"scene count >= 12 ({scene_count})")
 
-    order_scene_count = story_js.count("type: 'order'")
+    order_scene_count = chapter_story.count("type: 'order'")
     if order_scene_count < 3:
         fail(f"order scenes too low: {order_scene_count} (expected >= 3)")
     ok(f"order scenes >= 3 ({order_scene_count})")
@@ -119,17 +124,37 @@ def main() -> None:
         fail("drink panel hooks missing")
     ok("drink panel hooks present")
 
-    important_flags = ["corpDeal", "hackerTrust", "policeWarrant", "memoryTape", "barShielded", "truthLeakDraft"]
+    important_flags = ["corpDeal", "hackerTrust", "policeWarrant", "memoryTape", "barShielded", "truthLeakDraft", "ghostHandshake"]
     for flag in important_flags:
-        if flag not in story_js:
+        if flag not in chapter_story and flag not in story_js:
             fail(f"missing important flag: {flag}")
     ok("important story flags present")
 
-    conditional_branches = story_js.count("if: {")
+    conditional_branches = chapter_story.count("if: {")
     if conditional_branches < 3:
         fail(f"conditional branches too low: {conditional_branches} (expected >= 3)")
     ok(f"conditional branches >= 3 ({conditional_branches})")
 
+
+    for token in ["chapter1Scenes", "chapter2Scenes", "...chapter1Scenes", "...chapter2Scenes"]:
+        if token not in (story_js + chap1_js + chap2_js):
+            fail(f"missing chapter merge token: {token}")
+    ok("chapter split + merged loading present")
+
+    branch_scene_count = len(re.findall(r"\bs1[1-5]\s*:\s*{", chap2_js))
+    if branch_scene_count < 4:
+        fail(f"side-branch scenes too low: {branch_scene_count} (expected >= 4)")
+    ok(f"side-branch scenes >= 4 ({branch_scene_count})")
+
+    for token in ["flagsAll: ['corpDeal', 'truthLeakDraft']", "relAtLeast: { name: 'hacker', val: 1 }", "setFlags: ['ghostHandshake']"]:
+        if token not in chap2_js:
+            fail(f"missing side-branch trigger/effect token: {token}")
+    ok("side-branch trigger by flags/relations + completion flag present")
+
+    for token in ["st.flags.ghostHandshake", "sideQuestSuffix", "灰匣注释"]:
+        if token not in (chap2_js + main_js):
+            fail(f"missing ending variation token: {token}")
+    ok("ending text variation for side-branch present")
     for token in ["PORTRAIT_SIZE", "PORTRAIT_PALETTE", "portraits:", "neutral:", "smile:", "angry:"]:
         if token not in data_js:
             fail(f"missing portrait token: {token}")
