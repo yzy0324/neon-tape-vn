@@ -20,6 +20,15 @@
     .cassette h2{margin:0;font-size:16px;letter-spacing:1px;color:#ffd787}.tiny{font-size:13px;opacity:.95}
     .portrait-wrap{position:relative;border:1px solid rgba(255,142,191,.35);border-radius:10px;background:rgba(8,5,22,.8);display:grid;place-items:center;min-height:156px;overflow:hidden}.portrait-wrap::before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,rgba(255,255,255,.08),rgba(255,255,255,.08) 1px,transparent 1px,transparent 4px);mix-blend-mode:screen;opacity:.18;animation:portraitScan 2.2s steps(6,end) infinite}.portrait{width:96px;height:144px;max-width:100%;max-height:calc(100vw - 48px);border-radius:6px;image-rendering:pixelated;object-fit:contain;transition:opacity .14s ease;opacity:1}.portrait-switching{opacity:.82}
     .stats{display:grid;gap:8px;font-size:13px}.bar{height:8px;border-radius:4px;background:rgba(255,255,255,.15);overflow:hidden;margin-top:3px}.bar>span{display:block;height:100%;width:50%;background:linear-gradient(to right,var(--neon-cyan),#ffe37f);box-shadow:0 0 10px rgba(47,243,224,.7);transition:width .25s ease}
+    .forecast{border:1px solid rgba(47,243,224,.35);border-radius:8px;padding:8px;background:rgba(8,5,22,.68);font-size:12px;color:#c6fff6;line-height:1.45}
+    .route-diagnosis{border:1px solid rgba(255,205,141,.3);border-radius:8px;padding:8px;background:rgba(10,5,28,.72);display:grid;gap:8px}
+    .diag-list{display:grid;gap:7px;max-height:180px;overflow:auto}
+    .diag-item{border:1px solid rgba(255,132,214,.3);border-radius:8px;padding:6px;background:rgba(20,12,46,.75)}
+    .diag-meta{font-size:11px;color:#ffe3a4;margin-bottom:4px}
+    .diag-bars{display:grid;gap:3px}
+    .diag-bar-row{display:grid;grid-template-columns:42px 1fr auto;gap:6px;align-items:center;font-size:11px}
+    .diag-mini{height:6px;border-radius:4px;background:rgba(255,255,255,.15);overflow:hidden}
+    .diag-mini>span{display:block;height:100%;background:linear-gradient(90deg,#2ff3e0,#ffdb80)}
     .log{border:1px solid rgba(255,190,140,.35);border-radius:8px;padding:8px;background:rgba(10,5,28,.72);height:180px;overflow:auto;font-size:12px;line-height:1.55}
     .controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto}
     .save-panel,.archive-panel{position:fixed;inset:0;display:none;place-items:center;background:rgba(5,3,20,.68);backdrop-filter:blur(2px);z-index:8}
@@ -98,6 +107,11 @@
         <div>理性 ↔ 感性<div class="bar"><span id="barLogic"></span></div></div>
         <div>合作 ↔ 对抗<div class="bar"><span id="barCoop"></span></div></div>
         <div>探索 ↔ 保守<div class="bar"><span id="barExplore"></span></div></div>
+      </div>
+      <div id="routeForecast" class="forecast">终章预测：尚未进入预测窗口。</div>
+      <div class="route-diagnosis">
+        <div class="tiny">路线诊断（最近 8 次选择）</div>
+        <div id="routeDiagnosisList" class="diag-list"></div>
       </div>
       <div class="tiny">剧情日志（可回看）</div>
       <div id="logPanel" class="log"></div>

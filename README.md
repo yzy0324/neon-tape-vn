@@ -45,6 +45,8 @@ node scripts/smoke_test.mjs
 - 新增线索板/档案面板：可查看已获线索、关键人物关系条、重要 flags（人类可读名）。
 - 剧情中包含并使用 6 个关键 flags：`corpDeal`、`hackerTrust`、`policeWarrant`、`memoryTape`、`barShielded`、`truthLeakDraft`。
 - 三维倾向系统（-5..+5）：Rational↔Emotional、Cooperate↔Confront、Explore↔Conserve（实时进度条）。
+- 新增“路线诊断”面板：展示最近 8 次选择对三维倾向的贡献（每项含正负值条形）。
+- 进入终章前（s09）会显示“预测结局倾向”代号提示（A/B/C），不直接剧透结局名。
 - 3 条结局：A【玻璃停火】/ B【霓虹燃烧】/ C【磁带群星】。
 - 存档系统：3 个手动槽（Slot1/2/3）+ 1 个自动存档（Auto），介质为 `localStorage`。
 - 存档字段包含 `sceneId`、`tendencies/tendency`、`flags`、`inventory`、`relations`、剧情日志、点单历史/草稿、BGM 状态，并新增 `pathHistory` 与 `clearedRuns`。
@@ -68,6 +70,7 @@ node scripts/smoke_test.mjs
 python scripts/selfcheck.py
 node js/selfcheck.js
 node tools/validate_story.js
+node tools/balance_report.js
 ```
 
 该脚本检查：
@@ -81,6 +84,13 @@ node tools/validate_story.js
 - 3 轨音频关键实现标记存在（`setAmbienceForScene` / `playSfx`）
 - 键盘快捷键与无障碍标签存在（Enter / 1,2,3 / S / L / aria-label）
 - 新增 Node 自检：场景数、结局、schemaVersion、饮品数量、flags 数量、存档关键字段
+- 倾向平衡报告：统计全部 choices 在三轴的总和/均值/极端值，并输出失衡提示
+
+你也可以通过 npm script 直接运行平衡报告：
+
+```bash
+npm run balance:report
+```
 
 
 ## 剧情 Scene Schema（data/story.js）
