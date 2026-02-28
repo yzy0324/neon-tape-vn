@@ -16,6 +16,28 @@ python -m http.server 8000
 
 ## 当前内容摘要
 
+## CI 通过标准
+
+本仓库在 PR 上自动执行 `.github/workflows/ci.yml`，通过标准如下：
+
+- 必跑：`python scripts/selfcheck.py`
+- 必跑：`node tools/validate_story.js`
+- 可选：`node scripts/smoke_test.mjs`（仅当仓库变量 `ENABLE_PLAYWRIGHT_SMOKE=true` 时执行）
+
+失败时会在 Actions 日志中输出明确的 `[FAIL] ...` 信息；通过时输出 `[OK] ...` / `[PASS] ...`。
+
+本地可先手动执行：
+
+```bash
+python scripts/selfcheck.py
+node tools/validate_story.js
+# 可选冒烟
+npm install
+npx playwright install --with-deps chromium
+node scripts/smoke_test.mjs
+```
+
+
 - 酒吧夜班叙事节奏：对话 + 选项 + 3 次点单/调酒事件（企业/黑客/警探）。
 - `choice` 已支持系统化状态改动：`setFlags` / `clearFlags` / `addItem` / `removeItem` / `rel`。
 - 统一状态由 `js/state.js` 管理：`flags`、`inventory`、`relations`、`tendencies`。
