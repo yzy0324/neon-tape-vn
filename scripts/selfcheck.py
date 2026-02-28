@@ -22,6 +22,7 @@ AUDIO_JS = ROOT / "js" / "audio.js"
 STORY_VALIDATOR = ROOT / "tools" / "validate_story.js"
 BALANCE_REPORT = ROOT / "tools" / "balance_report.js"
 CI_YML = ROOT / ".github" / "workflows" / "ci.yml"
+BASIC_CHECK_JS = ROOT / "tests" / "basic_check.js"
 
 
 def fail(message: str) -> None:
@@ -34,7 +35,7 @@ def ok(message: str) -> None:
 
 
 def main() -> None:
-    for path in [INDEX, MAIN_JS, DATA_JS, STORY_JS, CHAP1_JS, CHAP2_JS, DRINKS_JS, DRINK_PANEL_JS, STATE_JS, AUDIO_JS, STORY_VALIDATOR, BALANCE_REPORT, CI_YML]:
+    for path in [INDEX, MAIN_JS, DATA_JS, STORY_JS, CHAP1_JS, CHAP2_JS, DRINKS_JS, DRINK_PANEL_JS, STATE_JS, AUDIO_JS, STORY_VALIDATOR, BALANCE_REPORT, CI_YML, BASIC_CHECK_JS]:
         if not path.exists():
             fail(f"missing required file: {path.relative_to(ROOT)}")
 
@@ -50,6 +51,7 @@ def main() -> None:
     audio_js = AUDIO_JS.read_text(encoding="utf-8")
 
     ci_yml = CI_YML.read_text(encoding="utf-8")
+    basic_check_js = BASIC_CHECK_JS.read_text(encoding="utf-8")
 
     merged = "\n".join([html, main_js, data_js, story_js, chap1_js, chap2_js, drinks_js, drink_panel_js, state_js, audio_js])
 
@@ -197,6 +199,17 @@ def main() -> None:
 
     
 
+
+
+    for token in ["height: 100%", "overflow: hidden", "story-modal", "story-clamped", "height: calc(var(--vh) * 100"]:
+        if token not in html + (ROOT / "css" / "ui.css").read_text(encoding="utf-8"):
+            fail(f"missing no-scroll layout token: {token}")
+    ok("no-scroll layout tokens present")
+
+    for token in ["reportNoScroll", "scrollHeight", "expandStoryBtn", "storyModal"]:
+        if token not in main_js + basic_check_js:
+            fail(f"missing no-scroll runtime token: {token}")
+    ok("runtime no-scroll check tokens present")
 
     for token in ["python scripts/selfcheck.py", "node tools/validate_story.js", "pull_request"]:
         if token not in ci_yml:

@@ -78,6 +78,10 @@ const historyBtn = document.getElementById('historyBtn');
 const historyPanelEl = document.getElementById('historyPanel');
 const historyBodyEl = document.getElementById('historyBody');
 const historyCloseBtn = document.getElementById('historyClose');
+const expandStoryBtn = document.getElementById('expandStoryBtn');
+const storyModalEl = document.getElementById('storyModal');
+const storyModalBodyEl = document.getElementById('storyModalBody');
+const storyModalCloseBtn = document.getElementById('storyModalClose');
 const hidePortraitToggle = document.getElementById('hidePortraitToggle');
 const compactUiToggle = document.getElementById('compactUiToggle');
 const synth = new BgmSynth();
@@ -106,19 +110,39 @@ function updateViewportHeightVar() {
   document.documentElement.style.setProperty('--vh', `${vh}px`);
 }
 
-function reportHorizontalOverflow(stage = 'runtime') {
+function reportNoScroll(stage = 'runtime') {
   const scrollWidth = document.documentElement.scrollWidth;
+  const scrollHeight = document.documentElement.scrollHeight;
   const viewportWidth = window.innerWidth;
-  const pass = scrollWidth <= viewportWidth + 1;
+  const viewportHeight = window.innerHeight;
+  const pass = scrollWidth <= viewportWidth + 1 && scrollHeight <= viewportHeight + 1;
   if (isDevEnv()) {
-    console.info(`[layout-check] ${stage}`, { pass, scrollWidth, viewportWidth });
+    console.info(`[layout-check] ${stage}`, { pass, scrollWidth, viewportWidth, scrollHeight, viewportHeight });
   }
   return pass;
 }
 
 function togglePanelWithLayoutCheck(panelEl) {
   panelEl.classList.toggle('open');
-  requestAnimationFrame(() => reportHorizontalOverflow(`toggle:${panelEl.id}`));
+  requestAnimationFrame(() => reportNoScroll(`toggle:${panelEl.id}`));
+}
+
+function updateStoryOverflowState() {
+  const hasOverflow = storyEl.scrollHeight > storyEl.clientHeight + 2;
+  storyEl.classList.toggle('story-clamped', !storyEl.classList.contains('story-expanded'));
+  expandStoryBtn.hidden = !hasOverflow;
+  expandStoryBtn.textContent = storyEl.classList.contains('story-expanded') ? '收起全文' : '展开全文';
+}
+
+function collapseStory() {
+  storyEl.classList.remove('story-expanded');
+  updateStoryOverflowState();
+}
+
+function openStoryModal() {
+  storyModalBodyEl.textContent = playback.fullText || storyEl.textContent || '';
+  storyModalEl.classList.add('open');
+  requestAnimationFrame(() => reportNoScroll('story-modal-open'));
 }
 
 
@@ -265,6 +289,7 @@ function showFullText() {
   stopTyping();
   playback.shownText = playback.fullText;
   storyEl.textContent = playback.fullText;
+  requestAnimationFrame(updateStoryOverflowState);
   markCurrentTextRead();
 }
 
@@ -282,6 +307,7 @@ function queueAutoAdvance() {
 function runTypewriter(scene, text) {
   stopTyping();
   stopAutoAdvance();
+  collapseStory();
   playback.fullText = text || '';
   playback.shownText = '';
   playback.sceneId = state.current;
@@ -298,6 +324,7 @@ function runTypewriter(scene, text) {
 
   if (!playback.fullText) {
     storyEl.textContent = '';
+    requestAnimationFrame(updateStoryOverflowState);
     markCurrentTextRead();
     queueAutoAdvance();
     return;
@@ -313,6 +340,7 @@ function runTypewriter(scene, text) {
     }
     playback.shownText = playback.fullText.slice(0, playback.shownText.length + 1);
     storyEl.textContent = playback.shownText;
+    requestAnimationFrame(updateStoryOverflowState);
     playback.timer = setTimeout(step, speed);
   };
   step();
@@ -601,6 +629,7 @@ function applyAudioSettingsAndPersist() {
   autoSave(false);
 }
 
+
 function updateBgmUI() {
   bgmBtn.textContent = state.bgmEnabled ? '关闭音频总线' : '开启音频总线';
   volumeSlider.value = String(Math.round(state.bgmVolume * 100));
@@ -730,6 +759,7 @@ function showTitle() {
   playback.fullText = '雨夜、磁带、三方倒计时。\n\n你是酒吧“太阳雨”的夜班调酒师，也是匿名情报中继点。\n请选择开始新卷，或读取旧存档继续。';
   playback.shownText = playback.fullText;
   storyEl.textContent = playback.fullText;
+  collapseStory();
   choiceEl.innerHTML = '';
   const startBtn = document.createElement('button');
   startBtn.textContent = '开始新卷';
@@ -746,6 +776,10 @@ function showTitle() {
   renderEndingVault();
   renderHistoryPanel();
   updatePlaybackButtons();
+  requestAnimationFrame(() => {
+    updateStoryOverflowState();
+    reportNoScroll('title');
+  });
 }
 
 function showEnding(route) {
@@ -771,6 +805,7 @@ function showEnding(route) {
   titleEl.textContent = '结局回放';
   const historyHtml = state.choiceHistory.slice(-8).map((item, idx) => `<li>${idx + 1}. <strong>${item.scene}</strong>：${item.choice}</li>`).join('');
   storyEl.innerHTML = `<div style="color:#ffe38b;font-size:24px;margin-bottom:12px;">${end.title}</div><div>${end.text}</div>${sideQuestSuffix}<hr style="border-color:rgba(255,225,170,.4);margin:18px 0;"><div style="font-size:14px;color:#ffdca7;">关键选择回顾：</div><ol>${historyHtml || '<li>暂无可回顾选择。</li>'}</ol><div style="margin-top:8px;color:#9df3df;font-size:13px;">已解锁结局：${state.unlockedEndings.join(' / ') || '无'}</div>`;
+  collapseStory();
   choiceEl.innerHTML = '';
   const titleBtn = document.createElement('button');
   titleBtn.textContent = '返回标题';
@@ -781,6 +816,10 @@ function showEnding(route) {
   renderArchive();
   renderEndingVault();
   autoSave(true);
+  requestAnimationFrame(() => {
+    updateStoryOverflowState();
+    reportNoScroll('ending');
+  });
 }
 
 function getSceneText(scene) {
@@ -877,6 +916,7 @@ ${sceneText}`);
     playback.fullText = sceneText;
     playback.textHash = textHash(sceneText);
     storyEl.textContent = sceneText;
+    collapseStory();
     markCurrentTextRead();
     renderOrderScene(scene);
   } else {
@@ -885,6 +925,10 @@ ${sceneText}`);
   }
 
   autoSave(false);
+  requestAnimationFrame(() => {
+    updateStoryOverflowState();
+    reportNoScroll('scene-render');
+  });
 }
 
 
@@ -1053,12 +1097,44 @@ historyBtn.onclick = () => {
   togglePanelWithLayoutCheck(historyPanelEl);
   if (historyPanelEl.classList.contains('open')) renderHistoryPanel();
 };
-historyCloseBtn.onclick = () => historyPanelEl.classList.remove('open');
+historyCloseBtn.onclick = () => {
+  historyPanelEl.classList.remove('open');
+  requestAnimationFrame(() => reportNoScroll('history-close'));
+};
+
+expandStoryBtn.onclick = () => {
+  const preferModal = window.innerWidth <= 760;
+  if (preferModal) {
+    openStoryModal();
+    return;
+  }
+  storyEl.classList.toggle('story-expanded');
+  updateStoryOverflowState();
+  requestAnimationFrame(() => reportNoScroll('expand-story'));
+};
+
+storyModalCloseBtn.onclick = () => {
+  storyModalEl.classList.remove('open');
+  requestAnimationFrame(() => reportNoScroll('story-modal-close'));
+};
+
+storyModalEl.addEventListener('click', (event) => {
+  if (event.target === storyModalEl) {
+    storyModalEl.classList.remove('open');
+    requestAnimationFrame(() => reportNoScroll('story-modal-mask-close'));
+  }
+});
 
 document.addEventListener('keydown', (event) => {
   const target = event.target;
   const typing = target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
   if (typing) return;
+
+  if (event.key === 'Escape' && storyModalEl.classList.contains('open')) {
+    storyModalEl.classList.remove('open');
+    requestAnimationFrame(() => reportNoScroll('story-modal-esc-close'));
+    return;
+  }
 
   if (event.key === 'Enter') {
     if (savePanelEl.classList.contains('open') || archivePanelEl.classList.contains('open') || endingPanelEl.classList.contains('open')) return;
@@ -1106,11 +1182,11 @@ loadUiPrefs();
 updateViewportHeightVar();
 window.addEventListener('resize', () => {
   updateViewportHeightVar();
-  reportHorizontalOverflow('resize');
+  reportNoScroll('resize');
 });
 window.addEventListener('orientationchange', () => {
   updateViewportHeightVar();
-  reportHorizontalOverflow('orientationchange');
+  reportNoScroll('orientationchange');
 });
 loadStoredAudioSettings();
 updateBgmUI();
@@ -1130,4 +1206,4 @@ if (autoRaw) {
   showTitle();
 }
 
-reportHorizontalOverflow('initial');
+reportNoScroll('initial');
