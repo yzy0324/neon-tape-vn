@@ -2,6 +2,7 @@ import { cast, scenes } from './data.js';
 import { BgmSynth } from './audio.js';
 
 const SAVE_PREFIX = 'neonTape_';
+const SAVE_SCHEMA_VERSION = 2;
 const AUTO_SLOT = 'auto';
 const TITLE_SCENE = '__TITLE__';
 const ROUTE_SCENE_MAP = {
@@ -14,9 +15,11 @@ const state = {
   current: TITLE_SCENE,
   tendency: { rational: 0, cooperate: 0, explore: 0 },
   log: [],
-  bgmOn: false,
   routeLock: null,
-  choiceHistory: []
+  choiceHistory: [],
+  unlockedEndings: [],
+  bgmEnabled: false,
+  bgmVolume: 0.5
 };
 
 const bgStyles = {
@@ -55,6 +58,11 @@ const logPanelEl = document.getElementById('logPanel');
 const bgLayerEl = document.getElementById('bgLayer');
 const bgmBtn = document.getElementById('bgmBtn');
 const routeHintEl = document.getElementById('routeHint');
+const savePanelEl = document.getElementById('savePanel');
+const saveStatusEl = document.getElementById('saveStatus');
+const saveTextEl = document.getElementById('saveTransferText');
+const volumeSlider = document.getElementById('bgmVolume');
+const volumeLabel = document.getElementById('bgmVolumeLabel');
 const synth = new BgmSynth();
 
 function clamp(val, min, max) {
@@ -120,6 +128,16 @@ function renderLog() {
   logPanelEl.scrollTop = logPanelEl.scrollHeight;
 }
 
+function setSaveStatus(text) {
+  saveStatusEl.textContent = text;
+}
+
+function updateBgmUI() {
+  bgmBtn.textContent = state.bgmEnabled ? '关闭 BGM' : '开启 BGM';
+  volumeSlider.value = String(Math.round(state.bgmVolume * 100));
+  volumeLabel.textContent = `${Math.round(state.bgmVolume * 100)}%`;
+}
+
 function applyEffect(effect = {}) {
   Object.entries(effect).forEach(([k, v]) => {
     if (k === 'logic') state.tendency.rational = clamp(state.tendency.rational + v, -5, 5);
@@ -134,6 +152,79 @@ function applyEffect(effect = {}) {
 function lockRoute() {
   state.routeLock = nearestRoute();
   addLog(`[系统] 终章路线锁定：${ROUTES[state.routeLock].name}`);
+}
+
+function makeSavePayload() {
+  return {
+    schemaVersion: SAVE_SCHEMA_VERSION,
+    sceneId: state.current,
+    tendency: state.tendency,
+    log: state.log,
+    unlockedEndings: state.unlockedEndings,
+    bgmEnabled: state.bgmEnabled,
+    bgmVolume: state.bgmVolume,
+    routeLock: state.routeLock,
+    choiceHistory: state.choiceHistory,
+    savedAt: new Date().toISOString()
+  };
+}
+
+function normalizeLegacyScore(score = {}) {
+  const rational = clamp((score.logic || 0) - (score.emotion || 0), -5, 5);
+  const cooperate = clamp((score.coop || 0) - (score.oppose || 0), -5, 5);
+  const explore = clamp((score.explore || 0) - (score.preserve || 0), -5, 5);
+  return { rational, cooperate, explore };
+}
+
+function parseSaveData(rawData) {
+  const data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+  if (!data || typeof data !== 'object') throw new Error('存档格式无效');
+
+  const normalized = {
+    schemaVersion: Number.isInteger(data.schemaVersion) ? data.schemaVersion : 1,
+    sceneId: typeof data.sceneId === 'string' ? data.sceneId : (data.current || 's00'),
+    tendency: data.tendency || normalizeLegacyScore(data.score),
+    log: Array.isArray(data.log) ? data.log : [],
+    unlockedEndings: Array.isArray(data.unlockedEndings) ? data.unlockedEndings.filter((r) => ROUTES[r]) : [],
+    bgmEnabled: typeof data.bgmEnabled === 'boolean' ? data.bgmEnabled : !!data.bgmOn,
+    bgmVolume: clamp(typeof data.bgmVolume === 'number' ? data.bgmVolume : 0.5, 0, 1),
+    routeLock: data.routeLock && ROUTES[data.routeLock] ? data.routeLock : null,
+    choiceHistory: Array.isArray(data.choiceHistory) ? data.choiceHistory : []
+  };
+
+  normalized.tendency = {
+    rational: clamp(Number(normalized.tendency.rational) || 0, -5, 5),
+    cooperate: clamp(Number(normalized.tendency.cooperate) || 0, -5, 5),
+    explore: clamp(Number(normalized.tendency.explore) || 0, -5, 5)
+  };
+
+  if (normalized.schemaVersion > SAVE_SCHEMA_VERSION) {
+    addLog('[系统] 检测到更高版本存档，已按兼容模式读取。');
+  }
+
+  return normalized;
+}
+
+function applySaveData(data) {
+  state.current = data.sceneId;
+  state.tendency = data.tendency;
+  state.log = data.log;
+  state.unlockedEndings = data.unlockedEndings;
+  state.bgmEnabled = data.bgmEnabled;
+  state.bgmVolume = data.bgmVolume;
+  state.routeLock = data.routeLock;
+  state.choiceHistory = data.choiceHistory;
+  synth.setVolume(state.bgmVolume);
+  updateBgmUI();
+}
+
+function save(slot) {
+  localStorage.setItem(`${SAVE_PREFIX}${slot}`, JSON.stringify(makeSavePayload()));
+}
+
+function autoSave(isEnd) {
+  save(AUTO_SLOT);
+  if (isEnd) save('ending');
 }
 
 function showTitle() {
@@ -152,13 +243,14 @@ function showTitle() {
   charInfoEl.textContent = `${c.name}｜${c.desc}`;
   renderBars();
   renderLog();
+  updateBgmUI();
 }
 
 function showEnding(route) {
   const endings = {
     A: {
       title: '结局A【玻璃停火】',
-      text: '黎明前 03:17，你把“回声井”证据与审计密钥拆成三方共签版本：企业法务、街区诊所联盟、执法监察处必须同屏确认后才能解封。\n\n此前被你留在日志里的“常温水订单 #A-17”终于派上用场——那是韩铬在巡逻线外留下的生命线清单。你优先释放医院与供电修复权限，避免了停摆连锁。与此同时，绫濑雾音兑现了她在点单时承诺的豁免窗口，亲自把谈判桌搬回酒吧。\n\n烬线没有离开。他作为最尖锐的反对者，反而成为停火协议的实时监督节点。三方都不信任彼此，却勉强信任你这个“只转发可核验真相”的中介。城市迎来脆弱停火，而你的私人频道永远失去匿名性——你把情感与关系压成代价，换来清晨没有燃烧的天际线。'
+      text: '黎明前 03:17，你把“回声井”证据与审计密钥拆成三方共签版本：企业法务、街区诊所联盟、执法监察处必须同屏确认后才能解封。\n\n此前被你留在日志里的“常温水订单 #A-17”终于派上用场——那是韩铬在巡逻线外留下的生命线清单。你优先释放医院与供电修复…核验真相”的中介。城市迎来脆弱停火，而你的私人频道永远失去匿名性——你把情感与关系压成代价，换来清晨没有燃烧的天际线。'
     },
     B: {
       title: '结局B【霓虹燃烧】',
@@ -170,13 +262,14 @@ function showEnding(route) {
     }
   };
   const end = endings[route];
+  if (!state.unlockedEndings.includes(route)) state.unlockedEndings.push(route);
   addLog(`[结局] ${end.title}`);
   titleEl.textContent = '结局回放';
   const historyHtml = state.choiceHistory
     .slice(-8)
     .map((item, idx) => `<li>${idx + 1}. <strong>${item.scene}</strong>：${item.choice}</li>`)
     .join('');
-  storyEl.innerHTML = `<div style="color:#ffe38b;font-size:24px;margin-bottom:12px;">${end.title}</div><div>${end.text}</div><hr style="border-color:rgba(255,225,170,.4);margin:18px 0;"><div style="font-size:14px;color:#ffdca7;">关键选择回顾：</div><ol>${historyHtml || '<li>暂无可回顾选择。</li>'}</ol>`;
+  storyEl.innerHTML = `<div style="color:#ffe38b;font-size:24px;margin-bottom:12px;">${end.title}</div><div>${end.text}</div><hr style="border-color:rgba(255,225,170,.4);margin:18px 0;"><div style="font-size:14px;color:#ffdca7;">关键选择回顾：</div><ol>${historyHtml || '<li>暂无可回顾选择。</li>'}</ol><div style="margin-top:8px;color:#9df3df;font-size:13px;">已解锁结局：${state.unlockedEndings.join(' / ') || '无'}</div>`;
   choiceEl.innerHTML = '';
   const titleBtn = document.createElement('button');
   titleBtn.textContent = '返回标题';
@@ -194,6 +287,10 @@ function renderScene() {
   if (state.current === 'END') return showEnding(state.routeLock || nearestRoute());
 
   const scene = scenes[state.current];
+  if (!scene) {
+    addLog('[系统] 存档场景不存在，已回退到标题。');
+    return showTitle();
+  }
   const text = getSceneText(scene);
 
   titleEl.textContent = scene.title;
@@ -231,35 +328,20 @@ function renderScene() {
   autoSave(false);
 }
 
-function save(slot) {
-  const payload = { ...state, bgmOn: synth.on };
-  localStorage.setItem(`${SAVE_PREFIX}${slot}`, JSON.stringify(payload));
-}
-
-function autoSave(isEnd) {
-  save(AUTO_SLOT);
-  if (isEnd) save('ending');
-}
-
-function normalizeLegacyScore(score = {}) {
-  const rational = clamp((score.logic || 0) - (score.emotion || 0), -5, 5);
-  const cooperate = clamp((score.coop || 0) - (score.oppose || 0), -5, 5);
-  const explore = clamp((score.explore || 0) - (score.preserve || 0), -5, 5);
-  return { rational, cooperate, explore };
-}
-
 function load(slot) {
   const raw = localStorage.getItem(`${SAVE_PREFIX}${slot}`) || localStorage.getItem(`${SAVE_PREFIX}${AUTO_SLOT}`);
-  if (!raw) return alert('没有可读取的存档，将从开头开始。');
-  const data = JSON.parse(raw);
-  state.current = data.current || 's00';
-  state.tendency = data.tendency || normalizeLegacyScore(data.score);
-  state.log = data.log || [];
-  state.bgmOn = !!data.bgmOn;
-  state.routeLock = data.routeLock || null;
-  state.choiceHistory = data.choiceHistory || [];
-  bgmBtn.textContent = state.bgmOn ? '关闭 BGM（需点击恢复）' : '开启 BGM';
-  renderScene();
+  if (!raw) {
+    alert('没有可读取的存档，将从开头开始。');
+    return;
+  }
+  try {
+    const parsed = parseSaveData(raw);
+    applySaveData(parsed);
+    renderScene();
+    setSaveStatus(`已读取 ${slot.toUpperCase()}，schema v${parsed.schemaVersion}`);
+  } catch (_err) {
+    alert('存档损坏或格式不兼容。');
+  }
 }
 
 function resetGame() {
@@ -271,24 +353,104 @@ function resetGame() {
   renderScene();
 }
 
-document.querySelectorAll('[data-save]').forEach((btn) => {
-  btn.onclick = () => { save(btn.dataset.save); alert(`已保存到 ${btn.dataset.save}`); };
-});
-document.querySelectorAll('[data-load]').forEach((btn) => {
-  btn.onclick = () => load(btn.dataset.load);
-});
+async function copyToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  saveTextEl.value = text;
+  saveTextEl.select();
+  document.execCommand('copy');
+}
+
+function exportSave(slot) {
+  const raw = localStorage.getItem(`${SAVE_PREFIX}${slot}`);
+  if (!raw) {
+    setSaveStatus(`槽位 ${slot.toUpperCase()} 没有存档。`);
+    return;
+  }
+  saveTextEl.value = raw;
+  copyToClipboard(raw)
+    .then(() => setSaveStatus(`已导出 ${slot.toUpperCase()} 到文本框并复制剪贴板。`))
+    .catch(() => setSaveStatus(`已导出 ${slot.toUpperCase()} 到文本框，剪贴板复制失败。`));
+}
+
+function importSave(slot) {
+  const raw = saveTextEl.value.trim();
+  if (!raw) {
+    setSaveStatus('请先在文本框粘贴存档 JSON。');
+    return;
+  }
+  try {
+    const parsed = parseSaveData(raw);
+    localStorage.setItem(`${SAVE_PREFIX}${slot}`, JSON.stringify({ ...parsed, schemaVersion: SAVE_SCHEMA_VERSION }));
+    setSaveStatus(`导入成功：${slot.toUpperCase()}（已兼容为 schema v${SAVE_SCHEMA_VERSION}）`);
+  } catch (_err) {
+    setSaveStatus('导入失败：JSON 格式错误或字段缺失。');
+  }
+}
+
+function toggleSavePanel() {
+  savePanelEl.classList.toggle('open');
+}
+
+function wireSaveControls() {
+  document.querySelectorAll('[data-save]').forEach((btn) => {
+    btn.onclick = () => {
+      save(btn.dataset.save);
+      setSaveStatus(`已保存到 ${btn.dataset.save.toUpperCase()}`);
+    };
+  });
+  document.querySelectorAll('[data-load]').forEach((btn) => {
+    btn.onclick = () => load(btn.dataset.load);
+  });
+  document.querySelectorAll('[data-export]').forEach((btn) => {
+    btn.onclick = () => exportSave(btn.dataset.export);
+  });
+  document.querySelectorAll('[data-import]').forEach((btn) => {
+    btn.onclick = () => importSave(btn.dataset.import);
+  });
+}
+
+function bootFromAutoSave() {
+  const raw = localStorage.getItem(`${SAVE_PREFIX}${AUTO_SLOT}`);
+  if (!raw) {
+    showTitle();
+    return;
+  }
+  try {
+    const parsed = parseSaveData(raw);
+    applySaveData(parsed);
+    renderScene();
+    setSaveStatus(`已自动恢复 AUTO（schema v${parsed.schemaVersion}）`);
+  } catch (_err) {
+    setSaveStatus('自动存档损坏，已回到标题页。');
+    showTitle();
+  }
+}
+
 document.getElementById('resetBtn').onclick = resetGame;
+document.getElementById('savePanelBtn').onclick = toggleSavePanel;
+document.getElementById('savePanelClose').onclick = toggleSavePanel;
+volumeSlider.oninput = () => {
+  state.bgmVolume = clamp(Number(volumeSlider.value) / 100, 0, 1);
+  synth.setVolume(state.bgmVolume);
+  updateBgmUI();
+  autoSave(false);
+};
 bgmBtn.onclick = async () => {
   if (!synth.on) {
     await synth.start();
-    state.bgmOn = true;
-    bgmBtn.textContent = '关闭 BGM';
+    synth.setVolume(state.bgmVolume);
+    state.bgmEnabled = true;
   } else {
     synth.stop();
-    state.bgmOn = false;
-    bgmBtn.textContent = '开启 BGM';
+    state.bgmEnabled = false;
   }
+  updateBgmUI();
   autoSave(false);
 };
 
-showTitle();
+wireSaveControls();
+updateBgmUI();
+bootFromAutoSave();

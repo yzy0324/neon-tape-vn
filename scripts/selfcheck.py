@@ -41,6 +41,9 @@ def main() -> None:
         "结局A【玻璃停火】",
         "结局B【霓虹燃烧】",
         "结局C【磁带群星】",
+        "Tape Archive / 存档总线",
+        "schemaVersion",
+        "saveTransferText",
     ]
     merged = html + "\n" + main_js + "\n" + data_js
     for token in required_strings:
@@ -72,10 +75,15 @@ def main() -> None:
         fail("manual save slots < 3")
     ok("manual save slots >= 3")
 
-    for token in ["routeLock", "choiceHistory", "AUTO_SLOT"]:
+    for token in ["routeLock", "choiceHistory", "AUTO_SLOT", "sceneId", "unlockedEndings", "bgmEnabled", "bgmVolume", "SAVE_SCHEMA_VERSION"]:
         if token not in main_js:
             fail(f"missing save payload key indicator: {token}")
     ok("save payload includes route and review keys")
+
+    for token in ["data-export=\"slot1\"", "data-import=\"slot1\"", "data-export=\"auto\"", "data-import=\"auto\""]:
+        if token not in html:
+            fail(f"missing import/export control: {token}")
+    ok("import/export controls present")
 
     print("\nSelf-check passed.")
 

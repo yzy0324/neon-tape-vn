@@ -22,6 +22,19 @@
     .stats{display:grid;gap:8px;font-size:13px}.bar{height:8px;border-radius:4px;background:rgba(255,255,255,.15);overflow:hidden;margin-top:3px}.bar>span{display:block;height:100%;width:50%;background:linear-gradient(to right,var(--neon-cyan),#ffe37f);box-shadow:0 0 10px rgba(47,243,224,.7);transition:width .25s ease}
     .log{border:1px solid rgba(255,190,140,.35);border-radius:8px;padding:8px;background:rgba(10,5,28,.72);height:180px;overflow:auto;font-size:12px;line-height:1.55}
     .controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto}
+    .save-panel{position:fixed;inset:0;display:none;place-items:center;background:rgba(5,3,20,.68);backdrop-filter:blur(2px);z-index:8}
+    .save-panel.open{display:grid}
+    .save-shell{width:min(920px,94vw);max-height:88vh;overflow:auto;border:1px solid var(--line);border-radius:14px;background:linear-gradient(145deg,rgba(30,15,60,.95),rgba(15,10,38,.96));box-shadow:0 0 18px rgba(255,80,160,.35), inset 0 0 18px rgba(47,243,224,.12);padding:14px}
+    .save-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .slots{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:8px}
+    .slot{border:1px solid rgba(255,205,141,.35);border-radius:10px;padding:8px;background:rgba(18,9,40,.7)}
+    .slot h4{margin:0 0 8px 0;color:#ffe38b}
+    .slot .row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+    .transfer{margin-top:12px;display:grid;gap:8px}
+    .transfer textarea{width:100%;min-height:140px;border-radius:10px;border:1px solid rgba(47,243,224,.35);background:rgba(8,5,22,.9);color:#ffd8e8;padding:10px;font-family:ui-monospace, SFMono-Regular, Menlo, monospace;font-size:12px}
+    .status{font-size:12px;color:#9df3df;min-height:18px}
+    .volume-wrap{grid-column:1/-1;border:1px solid rgba(255,205,141,.35);border-radius:10px;padding:8px;background:rgba(18,9,40,.7)}
+    .volume-wrap input{width:100%}
     button{border:1px solid rgba(255,205,141,.5);border-radius:8px;padding:8px;background:linear-gradient(120deg,rgba(255,138,91,.2),rgba(142,88,255,.3));color:#fff3dd;cursor:pointer;font-size:13px}
     button:hover{transform:translateY(-1px);box-shadow:0 0 10px rgba(255,150,190,.5)}
     .right{display:flex;flex-direction:column;overflow:hidden}
@@ -48,10 +61,8 @@
       <div class="tiny">剧情日志（可回看）</div>
       <div id="logPanel" class="log"></div>
       <div class="controls">
-        <button data-save="slot1">存档 1</button><button data-load="slot1">读档 1</button>
-        <button data-save="slot2">存档 2</button><button data-load="slot2">读档 2</button>
-        <button data-save="slot3">存档 3</button><button data-load="slot3">读档 3</button>
-        <button id="resetBtn">重开本局</button><button id="bgmBtn">开启 BGM</button>
+        <button id="savePanelBtn">磁带存档面板</button><button id="bgmBtn">开启 BGM</button>
+        <button id="resetBtn">重开本局</button><button data-load="auto">读取自动存档</button>
       </div>
     </aside>
     <section class="right">
@@ -61,6 +72,30 @@
       <div id="choices" class="choices"></div>
     </section>
   </main>
+
+  <div class="save-panel" id="savePanel" aria-hidden="true">
+    <section class="save-shell">
+      <div class="save-head">
+        <strong>📼 Tape Archive / 存档总线</strong>
+        <button id="savePanelClose">关闭</button>
+      </div>
+      <div class="slots">
+        <div class="slot"><h4>Slot1</h4><div class="row"><button data-save="slot1">保存</button><button data-load="slot1">读取</button><button data-export="slot1">导出</button><button data-import="slot1">导入</button></div></div>
+        <div class="slot"><h4>Slot2</h4><div class="row"><button data-save="slot2">保存</button><button data-load="slot2">读取</button><button data-export="slot2">导出</button><button data-import="slot2">导入</button></div></div>
+        <div class="slot"><h4>Slot3</h4><div class="row"><button data-save="slot3">保存</button><button data-load="slot3">读取</button><button data-export="slot3">导出</button><button data-import="slot3">导入</button></div></div>
+        <div class="slot"><h4>Auto</h4><div class="row"><button data-save="auto">保存</button><button data-load="auto">读取</button><button data-export="auto">导出</button><button data-import="auto">导入</button></div></div>
+        <div class="volume-wrap">
+          <div class="tiny">BGM 音量：<span id="bgmVolumeLabel">50%</span></div>
+          <input id="bgmVolume" type="range" min="0" max="100" step="1" value="50" />
+        </div>
+      </div>
+      <div class="transfer">
+        <div class="tiny">导出将尝试复制到剪贴板；导入前请粘贴完整 JSON（包含 schemaVersion）。</div>
+        <textarea id="saveTransferText" placeholder="在此粘贴或查看存档 JSON"></textarea>
+        <div id="saveStatus" class="status"></div>
+      </div>
+    </section>
+  </div>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
