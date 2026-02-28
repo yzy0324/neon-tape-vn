@@ -5,9 +5,11 @@ import { renderDrinkPanel } from './drink.js';
 import { IMPORTANT_FLAG_META, applyStateDelta, createInitialState, hasCondition, normalizeState } from './state.js';
 
 const SAVE_PREFIX = 'neonTape_';
-const SAVE_SCHEMA_VERSION = 4;
+const SAVE_SCHEMA_VERSION = 5;
 const AUTO_SLOT = 'auto';
 const TITLE_SCENE = '__TITLE__';
+const META_ARCHIVE_KEY = `${SAVE_PREFIX}endingArchive`;
+const REPLAY_SLOT = 'slot3';
 const ROUTE_SCENE_MAP = { A: 's10A', B: 's10B', C: 's10C' };
 
 const state = createInitialState();
@@ -43,7 +45,67 @@ const volumeSlider = document.getElementById('bgmVolume');
 const volumeLabel = document.getElementById('bgmVolumeLabel');
 const archivePanelEl = document.getElementById('archivePanel');
 const archiveBodyEl = document.getElementById('archiveBody');
+const endingPanelEl = document.getElementById('endingPanel');
+const endingBodyEl = document.getElementById('endingBody');
 const synth = new BgmSynth();
+
+const endingMeta = loadEndingMeta();
+const replay = { active: false, record: null, index: 0 };
+
+
+function loadEndingMeta() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(META_ARCHIVE_KEY) || '{}');
+    return {
+      unlockedEndings: Array.isArray(parsed.unlockedEndings) ? parsed.unlockedEndings.filter((route) => ROUTES[route]) : [],
+      runs: Array.isArray(parsed.runs) ? parsed.runs : []
+    };
+  } catch (_err) {
+    return { unlockedEndings: [], runs: [] };
+  }
+}
+
+function persistEndingMeta() {
+  localStorage.setItem(META_ARCHIVE_KEY, JSON.stringify(endingMeta));
+}
+
+function summarizeEffect(effect = {}) {
+  const labels = {
+    logic: '理性+', emotion: '感性+', coop: '合作+', oppose: '对抗+', explore: '探索+', preserve: '保守+'
+  };
+  const parts = Object.entries(effect).map(([k, v]) => `${labels[k] || k}${v}`);
+  return parts.length ? parts.join(' / ') : '无倾向变化';
+}
+
+function markSceneVisit(sceneId) {
+  if (replay.active) return;
+  const prev = state.pathHistory[state.pathHistory.length - 1];
+  if (prev !== sceneId) state.pathHistory.push(sceneId);
+}
+
+function buildRunRecord(route) {
+  const keyChoices = state.choiceHistory.slice(-6).map((item) => ({
+    sceneId: item.sceneId,
+    scene: item.scene,
+    choice: item.choice,
+    effect: item.effectSummary
+  }));
+  return {
+    route,
+    endingName: ROUTES[route].name,
+    path: [...state.pathHistory, 'END'],
+    keyChoices,
+    finishedAt: new Date().toISOString(),
+    snapshot: makeSavePayload()
+  };
+}
+
+function ensureArchiveSync() {
+  state.unlockedEndings = [...new Set([...(state.unlockedEndings || []), ...(endingMeta.unlockedEndings || [])])];
+  if (!Array.isArray(state.clearedRuns) || state.clearedRuns.length === 0) {
+    state.clearedRuns = [...endingMeta.runs];
+  }
+}
 
 const clamp = (val, min, max) => Math.min(max, Math.max(min, val));
 
@@ -97,6 +159,153 @@ function renderArchive() {
     .map((flag) => `<li>${IMPORTANT_FLAG_META[flag]}</li>`)
     .join('') || '<li>暂无已解锁关键状态</li>';
   archiveBodyEl.innerHTML = `<div class="tiny">线索 / 物品</div><ul>${clues}</ul><div class="tiny">关键人物关系</div>${relRows}<div class="tiny">已解锁关键状态</div><ul>${flagRows}</ul>`;
+}
+
+
+function renderFlowchart(path = [], runIndex = 0) {
+  const card = document.createElement('div');
+  card.className = 'flow-card';
+  card.innerHTML = '<div class="tiny">流程图（仅展示该次通关路径，点击节点进入回放模式）</div>';
+  const width = 680;
+  const nodeGap = 52;
+  const cols = 6;
+  const rows = Math.ceil(path.length / cols) || 1;
+  const height = rows * nodeGap + 36;
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.classList.add('flow-svg');
+  path.forEach((sceneId, idx) => {
+    const col = idx % cols;
+    const row = Math.floor(idx / cols);
+    const x = 40 + col * 105;
+    const y = 26 + row * nodeGap;
+    if (idx > 0) {
+      const prevCol = (idx - 1) % cols;
+      const prevRow = Math.floor((idx - 1) / cols);
+      const px = 40 + prevCol * 105;
+      const py = 26 + prevRow * nodeGap;
+      const line = document.createElementNS(svgNS, 'line');
+      line.setAttribute('x1', String(px));
+      line.setAttribute('y1', String(py));
+      line.setAttribute('x2', String(x));
+      line.setAttribute('y2', String(y));
+      line.setAttribute('stroke', 'rgba(255,225,170,.65)');
+      line.setAttribute('stroke-width', '2');
+      svg.appendChild(line);
+    }
+    const group = document.createElementNS(svgNS, 'g');
+    const circle = document.createElementNS(svgNS, 'circle');
+    circle.setAttribute('cx', String(x));
+    circle.setAttribute('cy', String(y));
+    circle.setAttribute('r', '13');
+    circle.setAttribute('fill', sceneId === 'END' ? '#ff8a5b' : '#2ff3e0');
+    circle.setAttribute('stroke', '#fff2c9');
+    circle.setAttribute('stroke-width', '1.5');
+    const text = document.createElementNS(svgNS, 'text');
+    text.setAttribute('x', String(x));
+    text.setAttribute('y', String(y + 4));
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-size', '10');
+    text.setAttribute('fill', '#1f0d3b');
+    text.textContent = String(idx + 1);
+    const label = document.createElementNS(svgNS, 'text');
+    label.setAttribute('x', String(x));
+    label.setAttribute('y', String(y + 24));
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('font-size', '10');
+    label.setAttribute('fill', '#ffe9f3');
+    label.textContent = sceneId;
+    group.append(circle, text, label);
+    group.style.cursor = 'pointer';
+    group.addEventListener('click', () => enterReplay(runIndex, idx));
+    svg.appendChild(group);
+  });
+  card.appendChild(svg);
+  return card;
+}
+
+function renderEndingVault() {
+  const unlocked = [...new Set([...(state.unlockedEndings || []), ...(endingMeta.unlockedEndings || [])])];
+  const statusHtml = ['A', 'B', 'C'].map((route) => `<li>${route}：${unlocked.includes(route) ? '✅ 已解锁' : '🔒 未解锁'}</li>`).join('');
+  const runs = (endingMeta.runs || []).slice().reverse();
+  const runsHtml = runs.length
+    ? runs.map((run, idx) => {
+      const keyRows = (run.keyChoices || []).slice(0, 6).map((item, keyIdx) => `<li>${keyIdx + 1}. <strong>${item.sceneId || item.scene}</strong> · ${item.choice}<br><em>${item.effect || '无倾向变化'}</em></li>`).join('');
+      return `<article class="ending-run"><h4>${run.endingName} <span class="tiny">${new Date(run.finishedAt).toLocaleString()}</span></h4><div class="tiny">路径节点：${(run.path || []).length}（需≥12）</div><ol>${keyRows}</ol><button data-replay="${runs.length - 1 - idx}" class="replay-btn">从首节点回放</button></article>`;
+    }).join('')
+    : '<div class="tiny">尚无通关记录，完成任一结局后将自动归档。</div>';
+  endingBodyEl.innerHTML = `<div class="tiny">已解锁结局</div><ul>${statusHtml}</ul><div class="tiny">结局关键选择（每条至少展示 6 个节点）</div>${runsHtml}`;
+  runs.forEach((_run, idx) => {
+    const btn = endingBodyEl.querySelector(`[data-replay="${runs.length - 1 - idx}"]`);
+    if (btn) btn.onclick = () => enterReplay(runs.length - 1 - idx, 0);
+  });
+  if (endingMeta.runs.length) {
+    const latestIndex = endingMeta.runs.length - 1;
+    endingBodyEl.appendChild(renderFlowchart(endingMeta.runs[latestIndex].path || [], latestIndex));
+  }
+}
+
+function enterReplay(runIndex, nodeIndex) {
+  const run = endingMeta.runs[runIndex];
+  if (!run || !Array.isArray(run.path) || !run.path[nodeIndex]) return;
+  replay.active = true;
+  replay.record = run;
+  replay.index = nodeIndex;
+  renderScene();
+}
+
+function exitReplay() {
+  replay.active = false;
+  replay.record = null;
+  replay.index = 0;
+  renderScene();
+}
+
+function createReplayBranchSave() {
+  if (!replay.active || !replay.record) return;
+  const snapshot = parseSaveData(replay.record.snapshot || {});
+  snapshot.current = replay.record.path[replay.index] === 'END' ? 's10A' : replay.record.path[replay.index];
+  snapshot.pathHistory = replay.record.path.slice(0, replay.index + 1).filter((id) => id !== 'END');
+  localStorage.setItem(`${SAVE_PREFIX}${REPLAY_SLOT}`, JSON.stringify({ ...snapshot, schemaVersion: SAVE_SCHEMA_VERSION }));
+  saveStatusEl.textContent = `已创建分支存档：${REPLAY_SLOT.toUpperCase()}（节点 ${snapshot.current}）。`;
+}
+
+function renderReplayScene() {
+  if (!replay.record) return;
+  const sceneId = replay.record.path[replay.index];
+  titleEl.textContent = `回放模式 · ${sceneId}`;
+  if (sceneId === 'END') {
+    storyEl.innerHTML = `<div style="color:#ffe38b;font-size:22px;">回放终点：${replay.record.endingName}</div><div class="tiny">只读回放中，不会写入当前存档。</div>`;
+    setPortrait(cast.zero, 'neutral');
+    charInfoEl.textContent = '系统｜回放终点';
+    bgLayerEl.style.background = bgStyles.dawn;
+  } else {
+    const scene = scenes[sceneId];
+    if (!scene) return;
+    const c = cast[scene.speaker];
+    const tempState = { ...state, ...(replay.record.snapshot || {}), score: tendencyPairs() };
+    storyEl.innerHTML = `<div class="tiny">只读回放，不会改变当前存档。</div>${typeof scene.text === 'function' ? scene.text(tempState) : scene.text}`;
+    bgLayerEl.style.background = bgStyles[scene.bg] || bgStyles.bar;
+    setPortrait(c, scene.expression || 'neutral');
+    charInfoEl.textContent = `${c.name}｜${c.desc}`;
+  }
+  choiceEl.innerHTML = '';
+  const prevBtn = document.createElement('button');
+  prevBtn.textContent = '上一节点';
+  prevBtn.disabled = replay.index <= 0;
+  prevBtn.onclick = () => { replay.index -= 1; renderScene(); };
+  const nextBtn = document.createElement('button');
+  nextBtn.textContent = '下一节点';
+  nextBtn.disabled = replay.index >= replay.record.path.length - 1;
+  nextBtn.onclick = () => { replay.index += 1; renderScene(); };
+  const branchBtn = document.createElement('button');
+  branchBtn.textContent = '创建分支存档到 Slot3';
+  branchBtn.onclick = createReplayBranchSave;
+  const exitBtn = document.createElement('button');
+  exitBtn.textContent = '退出回放';
+  exitBtn.onclick = exitReplay;
+  choiceEl.append(prevBtn, nextBtn, branchBtn, exitBtn);
 }
 
 function updateBgmUI() {
@@ -153,6 +362,8 @@ function makeSavePayload() {
     choiceHistory: state.choiceHistory,
     orderHistory: state.orderHistory,
     orderDrafts: state.orderDrafts,
+    pathHistory: state.pathHistory,
+    clearedRuns: state.clearedRuns,
     savedAt: new Date().toISOString()
   };
 }
@@ -172,7 +383,9 @@ function parseSaveData(rawData) {
     routeLock: data.routeLock && ROUTES[data.routeLock] ? data.routeLock : null,
     choiceHistory: data.choiceHistory,
     orderHistory: data.orderHistory,
-    orderDrafts: data.orderDrafts
+    orderDrafts: data.orderDrafts,
+    pathHistory: data.pathHistory,
+    clearedRuns: data.clearedRuns
   });
   return { ...normalized, schemaVersion: Number.isInteger(data.schemaVersion) ? data.schemaVersion : 1 };
 }
@@ -181,7 +394,9 @@ function applySaveData(data) {
   Object.assign(state, normalizeState(data));
   synth.setVolume(state.bgmVolume);
   updateBgmUI();
+  ensureArchiveSync();
   renderArchive();
+  renderEndingVault();
 }
 
 function save(slot) { localStorage.setItem(`${SAVE_PREFIX}${slot}`, JSON.stringify(makeSavePayload())); }
@@ -202,7 +417,9 @@ function showTitle() {
   charInfoEl.textContent = `${cast.zero.name}｜${cast.zero.desc}`;
   renderBars();
   renderLog();
+  ensureArchiveSync();
   renderArchive();
+  renderEndingVault();
 }
 
 function showEnding(route) {
@@ -213,6 +430,12 @@ function showEnding(route) {
   };
   const end = endings[route];
   if (!state.unlockedEndings.includes(route)) state.unlockedEndings.push(route);
+  if (!endingMeta.unlockedEndings.includes(route)) endingMeta.unlockedEndings.push(route);
+  const runRecord = buildRunRecord(route);
+  state.clearedRuns.push(runRecord);
+  endingMeta.runs.push(runRecord);
+  if (endingMeta.runs.length > 12) endingMeta.runs.shift();
+  persistEndingMeta();
   addLog(`[结局] ${end.title}`);
   titleEl.textContent = '结局回放';
   const historyHtml = state.choiceHistory.slice(-8).map((item, idx) => `<li>${idx + 1}. <strong>${item.scene}</strong>：${item.choice}</li>`).join('');
@@ -224,6 +447,7 @@ function showEnding(route) {
   choiceEl.appendChild(titleBtn);
   renderLog();
   renderArchive();
+  renderEndingVault();
   autoSave(true);
 }
 
@@ -263,7 +487,7 @@ function renderChoiceScene(scene) {
     btn.onclick = () => {
       applyEffect(ch.effect);
       applyStateDelta(state, ch);
-      state.choiceHistory.push({ scene: scene.title, choice: ch.text });
+      state.choiceHistory.push({ sceneId: state.current, scene: scene.title, choice: ch.text, effectSummary: summarizeEffect(ch.effect) });
       addLog(`▶ ${ch.text}`);
       if (ch.routeLock) {
         lockRoute();
@@ -278,11 +502,13 @@ function renderChoiceScene(scene) {
 }
 
 function renderScene() {
+  if (replay.active) return renderReplayScene();
   if (state.current === TITLE_SCENE) return showTitle();
   if (state.current === 'END') return showEnding(state.routeLock || nearestRoute());
   const scene = scenes[state.current];
   if (!scene) return showTitle();
 
+  markSceneVisit(state.current);
   titleEl.textContent = scene.title;
   storyEl.textContent = getSceneText(scene) || '';
   bgLayerEl.style.background = bgStyles[scene.bg] || bgStyles.bar;
@@ -321,6 +547,8 @@ function resetGame() {
   Object.assign(state, createInitialState());
   state.current = 's00';
   state.log = ['[系统] 新的一卷磁带开始转动。'];
+  state.pathHistory = [];
+  replay.active = false;
   renderScene();
 }
 
@@ -356,7 +584,9 @@ document.getElementById('resetBtn').onclick = resetGame;
 document.getElementById('savePanelBtn').onclick = () => savePanelEl.classList.toggle('open');
 document.getElementById('savePanelClose').onclick = () => savePanelEl.classList.toggle('open');
 document.getElementById('archivePanelBtn').onclick = () => archivePanelEl.classList.toggle('open');
+document.getElementById('endingPanelBtn').onclick = () => { renderEndingVault(); endingPanelEl.classList.toggle('open'); };
 document.getElementById('archivePanelClose').onclick = () => archivePanelEl.classList.remove('open');
+document.getElementById('endingPanelClose').onclick = () => endingPanelEl.classList.remove('open');
 volumeSlider.oninput = () => {
   state.bgmVolume = clamp(Number(volumeSlider.value) / 100, 0, 1);
   synth.setVolume(state.bgmVolume);
@@ -382,7 +612,9 @@ document.querySelectorAll('[data-export]').forEach((btn) => { btn.onclick = () =
 document.querySelectorAll('[data-import]').forEach((btn) => { btn.onclick = () => importSave(btn.dataset.import); });
 
 updateBgmUI();
+ensureArchiveSync();
 renderArchive();
+renderEndingVault();
 const autoRaw = localStorage.getItem(`${SAVE_PREFIX}${AUTO_SLOT}`);
 if (autoRaw) {
   try {

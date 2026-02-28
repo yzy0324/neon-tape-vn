@@ -36,6 +36,11 @@
     .archive-shell{width:min(720px,94vw);max-height:82vh;overflow:auto;border:1px solid var(--line);border-radius:14px;background:linear-gradient(145deg,rgba(30,15,60,.95),rgba(15,10,38,.96));padding:14px}
     .archive-body ul{margin:6px 0 12px 18px;padding:0}
     .archive-rel{display:grid;grid-template-columns:120px 1fr 24px;gap:8px;align-items:center;font-size:12px;margin-bottom:6px}
+    .ending-run{border:1px solid rgba(255,205,141,.3);border-radius:10px;padding:10px;margin:10px 0;background:rgba(17,8,36,.6)}
+    .ending-run h4{margin:0 0 8px;color:#ffe38b}
+    .ending-run ol{margin:6px 0 8px 18px;padding:0;font-size:12px}
+    .flow-card{margin-top:10px;padding-top:8px;border-top:1px dashed rgba(255,225,170,.35)}
+    .flow-svg{width:100%;height:auto;border:1px solid rgba(47,243,224,.25);border-radius:8px;background:rgba(8,5,22,.65)}
     .volume-wrap{grid-column:1/-1;border:1px solid rgba(255,205,141,.35);border-radius:10px;padding:8px;background:rgba(18,9,40,.7)}
     .volume-wrap input{width:100%}
     button{border:1px solid rgba(255,205,141,.5);border-radius:8px;padding:8px;background:linear-gradient(120deg,rgba(255,138,91,.2),rgba(142,88,255,.3));color:#fff3dd;cursor:pointer;font-size:13px}
@@ -73,6 +78,7 @@
       <div id="logPanel" class="log"></div>
       <div class="controls">
         <button id="savePanelBtn">磁带存档面板</button><button id="archivePanelBtn">线索板/档案</button>
+        <button id="endingPanelBtn">结局档案馆</button>
         <button id="bgmBtn">开启 BGM</button>
         <button id="resetBtn">重开本局</button><button data-load="auto">读取自动存档</button>
       </div>
@@ -116,6 +122,16 @@
         <button id="archivePanelClose">关闭</button>
       </div>
       <div id="archiveBody" class="archive-body"></div>
+    </section>
+  </div>
+
+  <div class="archive-panel" id="endingPanel" aria-hidden="true">
+    <section class="archive-shell">
+      <div class="save-head">
+        <strong>🏁 结局档案馆</strong>
+        <button id="endingPanelClose">关闭</button>
+      </div>
+      <div id="endingBody" class="archive-body"></div>
     </section>
   </div>
   <script type="module" src="js/main.js"></script>

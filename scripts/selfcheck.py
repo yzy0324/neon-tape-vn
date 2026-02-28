@@ -59,6 +59,9 @@ def main() -> None:
         "orderDrafts",
         "线索板 / 档案",
         "archivePanelBtn",
+        "endingPanelBtn",
+        "结局档案馆",
+        "流程图（仅展示该次通关路径，点击节点进入回放模式）",
         "setFlags",
         "clearFlags",
         "addItem",
@@ -71,9 +74,9 @@ def main() -> None:
     ok("key strings present")
 
     scene_count = len(re.findall(r"\bs\d{2}[A-C]?\s*:\s*{", story_js))
-    if scene_count < 10:
-        fail(f"scene count too low: {scene_count} (expected >= 10)")
-    ok(f"scene count >= 10 ({scene_count})")
+    if scene_count < 12:
+        fail(f"scene count too low: {scene_count} (expected >= 12)")
+    ok(f"scene count >= 12 ({scene_count})")
 
     order_scene_count = story_js.count("type: 'order'")
     if order_scene_count < 3:
@@ -114,7 +117,7 @@ def main() -> None:
         fail("manual save slots < 3")
     ok("manual save slots >= 3")
 
-    for token in ["sceneId", "tendency", "tendencies", "flags", "inventory", "relations", "log", "bgmEnabled", "bgmVolume", "orderHistory", "orderDrafts"]:
+    for token in ["sceneId", "tendency", "tendencies", "flags", "inventory", "relations", "log", "bgmEnabled", "bgmVolume", "orderHistory", "orderDrafts", "pathHistory", "clearedRuns"]:
         if token not in main_js:
             fail(f"missing save payload key indicator: {token}")
     ok("save payload includes required keys")
