@@ -8,7 +8,7 @@
     :root {
       --bg-1:#13051f;--bg-2:#1f0d3b;--sunset:#ff8a5b;--sunset-2:#ff4f8b;--neon-cyan:#2ff3e0;--text:#ffd8e8;--panel:rgba(18,9,40,.9);--line:rgba(255,132,214,.42);
     }
-    *{box-sizing:border-box} body{margin:0;min-height:100vh;font-family:"Microsoft YaHei","Noto Sans SC",sans-serif;color:var(--text);background:radial-gradient(circle at 50% 15%,#47256e 0%,var(--bg-2) 35%,var(--bg-1) 70%);overflow:hidden}
+    *{box-sizing:border-box} body{margin:0;min-height:100vh;font-family:"Microsoft YaHei","Noto Sans SC",sans-serif;font-size:16px;color:var(--text);background:radial-gradient(circle at 50% 15%,#47256e 0%,var(--bg-2) 35%,var(--bg-1) 70%);overflow:hidden}
     body::before{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,rgba(255,255,255,.04),rgba(255,255,255,.04) 1px,transparent 2px,transparent 4px);mix-blend-mode:screen;opacity:.28}
     .sun{position:fixed;top:5vh;left:50%;transform:translateX(-50%);width:min(64vw,520px);height:min(64vw,520px);border-radius:50%;background:linear-gradient(to bottom,#ffd26f 5%,var(--sunset) 35%,var(--sunset-2) 75%);box-shadow:0 0 46px rgba(255,123,176,.42);overflow:hidden;opacity:.42}
     .sun::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(to bottom,transparent 0,transparent 20px,rgba(31,13,59,.76) 20px,rgba(31,13,59,.76) 26px)}
@@ -17,7 +17,7 @@
     .left,.right{border:1px solid var(--line);background:var(--panel);box-shadow:0 0 18px rgba(142,88,255,.36),inset 0 0 20px rgba(255,82,160,.16);border-radius:12px;backdrop-filter:blur(4px)}
     .left{padding:12px;display:flex;flex-direction:column;gap:10px}
     .cassette{border:1px solid rgba(255,215,173,.3);border-radius:10px;padding:10px;background:linear-gradient(135deg,rgba(255,152,134,.18),rgba(72,29,103,.55))}
-    .cassette h2{margin:0;font-size:16px;letter-spacing:1px;color:#ffd787}.tiny{font-size:12px;opacity:.9}
+    .cassette h2{margin:0;font-size:16px;letter-spacing:1px;color:#ffd787}.tiny{font-size:13px;opacity:.95}
     .portrait-wrap{position:relative;border:1px solid rgba(255,142,191,.35);border-radius:10px;background:rgba(8,5,22,.8);display:grid;place-items:center;min-height:156px;overflow:hidden}.portrait-wrap::before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,rgba(255,255,255,.08),rgba(255,255,255,.08) 1px,transparent 1px,transparent 4px);mix-blend-mode:screen;opacity:.18;animation:portraitScan 2.2s steps(6,end) infinite}.portrait{width:96px;height:144px;max-width:100%;max-height:calc(100vw - 48px);border-radius:6px;image-rendering:pixelated;object-fit:contain;transition:opacity .14s ease;opacity:1}.portrait-switching{opacity:.82}
     .stats{display:grid;gap:8px;font-size:13px}.bar{height:8px;border-radius:4px;background:rgba(255,255,255,.15);overflow:hidden;margin-top:3px}.bar>span{display:block;height:100%;width:50%;background:linear-gradient(to right,var(--neon-cyan),#ffe37f);box-shadow:0 0 10px rgba(47,243,224,.7);transition:width .25s ease}
     .log{border:1px solid rgba(255,190,140,.35);border-radius:8px;padding:8px;background:rgba(10,5,28,.72);height:180px;overflow:auto;font-size:12px;line-height:1.55}
@@ -48,14 +48,14 @@
     .audio-row label{display:flex;align-items:center;gap:6px}
     .audio-unlock{display:none;margin-top:8px;padding:8px;border:1px dashed rgba(255,205,141,.45);border-radius:8px;background:rgba(27,14,52,.72);font-size:12px;color:#ffe9a6}
     .audio-unlock.show{display:block}
-    button{border:1px solid rgba(255,205,141,.5);border-radius:8px;padding:8px;background:linear-gradient(120deg,rgba(255,138,91,.2),rgba(142,88,255,.3));color:#fff3dd;cursor:pointer;font-size:13px}
+    button{border:1px solid rgba(255,205,141,.5);border-radius:8px;padding:8px;background:linear-gradient(120deg,rgba(255,138,91,.2),rgba(142,88,255,.3));color:#fff3dd;cursor:pointer;font-size:14px}
     button:hover{transform:translateY(-1px);box-shadow:0 0 10px rgba(255,150,190,.5)}
     .right{display:flex;flex-direction:column;overflow:hidden}
     .scene-head{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-size:14px;gap:10px;flex-wrap:wrap}
     .playback-controls{display:flex;gap:8px;flex-wrap:wrap}
     .playback-controls button{padding:6px 10px;font-size:12px}
     .playback-controls button.active{box-shadow:0 0 12px rgba(47,243,224,.48);border-color:rgba(47,243,224,.75)}
-    .story{flex:1;padding:18px;overflow:auto;line-height:1.7;font-size:16px;text-shadow:0 0 6px rgba(255,116,179,.2);white-space:pre-line}
+    .story{flex:1;padding:18px;overflow:auto;line-height:1.7;font-size:clamp(16px,3.8vw,18px);text-shadow:0 0 6px rgba(255,116,179,.2);white-space:pre-line}
     .choices{padding:12px;border-top:1px solid var(--line);display:grid;gap:8px;background:rgba(10,5,28,.78)}
     .drink-panel{display:grid;gap:8px;border:1px solid rgba(47,243,224,.35);border-radius:10px;padding:10px;background:rgba(16,9,36,.88)}
     .drink-head{font-size:14px;color:#ffdca7}
@@ -72,7 +72,14 @@
     .history-item{padding:8px;border:1px solid rgba(255,205,141,.25);border-radius:8px;background:rgba(20,12,46,.72)}
     .history-item .meta{font-size:11px;color:#9df3df;margin-bottom:4px}
     .bg-layer{position:absolute;inset:0;pointer-events:none;opacity:.2;background-size:cover;transition:opacity .3s}@keyframes portraitScan{0%{transform:translateY(-2px);opacity:.16}50%{transform:translateY(2px);opacity:.24}100%{transform:translateY(-2px);opacity:.16}}
-    @media (max-width:860px){.app{grid-template-columns:1fr;height:auto;margin-bottom:2vh}.left{order:2}.right{min-height:70vh}.portrait-wrap{min-height:150px}.portrait{max-height:55vw}}
+    .ui-toggles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .ui-toggles label{display:flex;align-items:center;gap:6px;padding:7px;border:1px solid rgba(255,205,141,.3);border-radius:8px;background:rgba(13,6,32,.65);font-size:13px}
+    body.portrait-hidden .portrait-wrap{display:none}
+    body.ui-compact .tiny{font-size:12px}
+    body.ui-compact button{padding:6px 7px;font-size:13px}
+    body.ui-compact .story{font-size:15px;padding:14px}
+    @media (max-width:860px){.app{grid-template-columns:1fr;height:auto;margin-bottom:2vh}.left{order:2}.right{min-height:65vh}.portrait-wrap{min-height:120px}.portrait{max-height:45vw}.slots{grid-template-columns:repeat(2,minmax(140px,1fr))}}
+    @media (max-width:768px){body{overflow:auto}.sun{opacity:.3}.grid{height:34vh}.app{margin:1vh auto;gap:10px}.left,.right{width:100%}.left{padding:10px}.scene-head{padding:10px;font-size:13px}.story{padding:14px;line-height:1.65}.choices{padding:10px}.drink-extras{grid-template-columns:1fr}.controls{grid-template-columns:1fr}.save-head{flex-wrap:wrap;gap:8px}.slots{grid-template-columns:1fr}.slot .row{grid-template-columns:1fr 1fr}.history-panel{left:10px;right:10px;bottom:10px;width:auto;max-height:50vh}}
   </style>
 </head>
 <body>
@@ -83,6 +90,10 @@
       <div class="portrait-wrap"><img id="portrait" class="portrait" alt="角色像素立绘" /></div>
       <div id="charInfo" class="tiny"></div>
       <div id="routeHint" class="tiny">路线趋近提示：尚未开始。</div>
+      <div class="ui-toggles" aria-label="移动端显示设置">
+        <label><input id="hidePortraitToggle" type="checkbox" />隐藏立绘</label>
+        <label><input id="compactUiToggle" type="checkbox" />缩小UI</label>
+      </div>
       <div class="stats">
         <div>理性 ↔ 感性<div class="bar"><span id="barLogic"></span></div></div>
         <div>合作 ↔ 对抗<div class="bar"><span id="barCoop"></span></div></div>
@@ -91,18 +102,18 @@
       <div class="tiny">剧情日志（可回看）</div>
       <div id="logPanel" class="log"></div>
       <div class="controls">
-        <button id="savePanelBtn">磁带存档面板</button><button id="archivePanelBtn">线索板/档案</button>
-        <button id="endingPanelBtn">结局档案馆</button>
-        <button id="bgmBtn">开启音频总线</button>
-        <button id="resetBtn">重开本局</button><button data-load="auto">读取自动存档</button>
+        <button id="savePanelBtn" aria-label="打开磁带存档面板">磁带存档面板</button><button id="archivePanelBtn" aria-label="打开线索板和档案">线索板/档案</button>
+        <button id="endingPanelBtn" aria-label="打开结局档案馆">结局档案馆</button>
+        <button id="bgmBtn" aria-label="切换音频总线">开启音频总线</button>
+        <button id="resetBtn" aria-label="重开当前流程">重开本局</button><button data-load="auto" aria-label="读取自动存档">读取自动存档</button>
         <div id="audioUnlockHint" class="audio-unlock" aria-live="polite">
           音频尚未解锁：浏览器需要一次用户交互后才能播放。
-          <button id="audioUnlockBtn">点击开启音频</button>
+          <button id="audioUnlockBtn" aria-label="通过用户交互解锁音频播放">点击开启音频</button>
         </div>
       </div>
     </aside>
     <section class="right">
-      <div class="scene-head"><strong id="sceneTitle">序章</strong><span id="clock">22:11 / 雨夜</span><div class="playback-controls"><button id="showAllBtn">全文</button><button id="autoBtn">Auto</button><button id="skipBtn">Skip</button><button id="historyBtn">History</button></div></div>
+      <div class="scene-head"><strong id="sceneTitle">序章</strong><span id="clock">22:11 / 雨夜</span><div class="playback-controls"><button id="showAllBtn" aria-label="立即显示当前全文">全文</button><button id="autoBtn" aria-label="切换自动播放">Auto</button><button id="skipBtn" aria-label="切换已读跳过">Skip</button><button id="historyBtn" aria-label="打开历史回放面板">History</button></div></div>
       <div class="bg-layer" id="bgLayer"></div>
       <div id="story" class="story"></div>
       <div id="choices" class="choices"></div>
@@ -113,13 +124,13 @@
     <section class="save-shell">
       <div class="save-head">
         <strong>📼 Tape Archive / 存档总线</strong>
-        <button id="savePanelClose">关闭</button>
+        <button id="savePanelClose" aria-label="关闭存档面板">关闭</button>
       </div>
       <div class="slots">
-        <div class="slot"><h4>Slot1</h4><div class="row"><button data-save="slot1">保存</button><button data-load="slot1">读取</button><button data-export="slot1">导出</button><button data-import="slot1">导入</button></div></div>
-        <div class="slot"><h4>Slot2</h4><div class="row"><button data-save="slot2">保存</button><button data-load="slot2">读取</button><button data-export="slot2">导出</button><button data-import="slot2">导入</button></div></div>
-        <div class="slot"><h4>Slot3</h4><div class="row"><button data-save="slot3">保存</button><button data-load="slot3">读取</button><button data-export="slot3">导出</button><button data-import="slot3">导入</button></div></div>
-        <div class="slot"><h4>Auto</h4><div class="row"><button data-save="auto">保存</button><button data-load="auto">读取</button><button data-export="auto">导出</button><button data-import="auto">导入</button></div></div>
+        <div class="slot"><h4>Slot1</h4><div class="row"><button data-save="slot1" aria-label="保存到存档槽1">保存</button><button data-load="slot1" aria-label="读取存档槽1">读取</button><button data-export="slot1" aria-label="导出存档槽1">导出</button><button data-import="slot1" aria-label="导入到存档槽1">导入</button></div></div>
+        <div class="slot"><h4>Slot2</h4><div class="row"><button data-save="slot2" aria-label="保存到存档槽2">保存</button><button data-load="slot2" aria-label="读取存档槽2">读取</button><button data-export="slot2" aria-label="导出存档槽2">导出</button><button data-import="slot2" aria-label="导入到存档槽2">导入</button></div></div>
+        <div class="slot"><h4>Slot3</h4><div class="row"><button data-save="slot3" aria-label="保存到存档槽3">保存</button><button data-load="slot3" aria-label="读取存档槽3">读取</button><button data-export="slot3" aria-label="导出存档槽3">导出</button><button data-import="slot3" aria-label="导入到存档槽3">导入</button></div></div>
+        <div class="slot"><h4>Auto</h4><div class="row"><button data-save="auto" aria-label="保存到自动存档槽">保存</button><button data-load="auto" aria-label="读取自动存档槽">读取</button><button data-export="auto" aria-label="导出自动存档槽">导出</button><button data-import="auto" aria-label="导入到自动存档槽">导入</button></div></div>
         <div class="volume-wrap">
           <div class="tiny">主音量：<span id="masterVolumeLabel">72%</span></div>
           <input id="masterVolume" type="range" min="0" max="100" step="1" value="72" />
@@ -156,7 +167,7 @@
     <section class="archive-shell">
       <div class="save-head">
         <strong>🧷 线索板 / 档案</strong>
-        <button id="archivePanelClose">关闭</button>
+        <button id="archivePanelClose" aria-label="关闭线索档案面板">关闭</button>
       </div>
       <div id="archiveBody" class="archive-body"></div>
     </section>
@@ -166,7 +177,7 @@
     <section class="archive-shell">
       <div class="save-head">
         <strong>🏁 结局档案馆</strong>
-        <button id="endingPanelClose">关闭</button>
+        <button id="endingPanelClose" aria-label="关闭结局档案面板">关闭</button>
       </div>
       <div id="endingBody" class="archive-body"></div>
     </section>
@@ -175,7 +186,7 @@
   <div class="history-panel" id="historyPanel" aria-hidden="true">
     <div class="head">
       <strong>🕘 历史回放（最近 40 条）</strong>
-      <button id="historyClose">关闭</button>
+      <button id="historyClose" aria-label="关闭历史回放">关闭</button>
     </div>
     <div id="historyBody" class="body"></div>
   </div>
