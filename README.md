@@ -72,6 +72,7 @@ python scripts/selfcheck.py
 node js/selfcheck.js
 node tools/validate_story.js
 node tools/balance_report.js
+node tests/basic_check.js
 ```
 
 该脚本检查：
@@ -87,10 +88,11 @@ node tools/balance_report.js
 - 新增 Node 自检：场景数、结局、schemaVersion、饮品数量、flags 数量、存档关键字段
 - 倾向平衡报告：统计全部 choices 在三轴的总和/均值/极端值，并输出失衡提示
 
-你也可以通过 npm script 直接运行平衡报告：
+你也可以通过 npm script 直接运行：
 
 ```bash
 npm run balance:report
+npm run check:noscroll
 ```
 
 ### 手动布局防溢出验证（新增）
@@ -98,11 +100,12 @@ npm run balance:report
 1. 启动静态服务：`python -m http.server 8000`。
 2. 分别切换到 `1366×768`、`1920×1080`、`390×844` 视口。
 3. 在每个视口中执行 3 次剧情切换，并依次打开/关闭：存档、线索板、结局档案、History 面板。
-4. 打开 DevTools Console，确认出现 `[layout-check] ... { pass: true }` 日志，且页面无横向滚动条。
+4. 打开 DevTools Console，确认出现 `[layout-check] ... { pass: true }` 日志，且页面无横向/纵向滚动条（`scrollHeight <= innerHeight` 且 `scrollWidth <= innerWidth`）。
 
 布局自检实现点：
-- CSS：`html/body overflow-x:hidden`、`100dvh + --vh`、面板 `max-height + overflow:auto`、文本 `overflow-wrap:anywhere`。
-- 运行时：`js/main.js` 在初始化/resize/面板切换时输出横向溢出检测结果（`scrollWidth <= innerWidth`）。
+- CSS：`html/body height:100% + overflow:hidden`、`100dvh + --vh`、主容器 Grid 分区、面板 `max-height + overflow:auto`。
+- 运行时：`js/main.js` 在初始化/resize/面板切换时输出双向无滚动检测（`scrollWidth/scrollHeight` 同时校验）。
+- 自动化：`tests/basic_check.js` 会在 `1366×768 / 1920×1080 / 390×844` 验证无页面滚动，并检查主要面板打开时仍通过。
 
 
 ## 剧情 Scene Schema（data/story.js）

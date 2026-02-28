@@ -4,51 +4,81 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>霓虹磁带：夜航调酒录</title>
-    <link rel="stylesheet" href="css/ui.css" />
-
+  <link rel="stylesheet" href="css/ui.css" />
 </head>
 <body>
-  <div class="sun"></div><div class="grid"></div>
+  <div class="sun"></div>
+  <div class="grid"></div>
+
   <main class="app">
-    <aside class="left">
+    <header class="status-dock">
       <div class="cassette"><h2>NEON TAPE_017</h2><div class="tiny">身份：夜航调酒师 / 情报中继员「零磁」</div></div>
+      <div class="status-scroll">
+        <div id="charInfo" class="tiny"></div>
+        <div id="routeHint" class="tiny">路线趋近提示：尚未开始。</div>
+        <div class="ui-toggles" aria-label="移动端显示设置">
+          <label><input id="hidePortraitToggle" type="checkbox" />隐藏立绘</label>
+          <label><input id="compactUiToggle" type="checkbox" />缩小UI</label>
+        </div>
+        <div class="stats">
+          <div>理性 ↔ 感性<div class="bar"><span id="barLogic"></span></div></div>
+          <div>合作 ↔ 对抗<div class="bar"><span id="barCoop"></span></div></div>
+          <div>探索 ↔ 保守<div class="bar"><span id="barExplore"></span></div></div>
+        </div>
+        <div id="routeForecast" class="forecast">终章预测：尚未进入预测窗口。</div>
+        <div class="route-diagnosis">
+          <div class="tiny">路线诊断（最近 8 次选择）</div>
+          <div id="routeDiagnosisList" class="diag-list"></div>
+        </div>
+        <div class="tiny">剧情日志（可回看）</div>
+        <div id="logPanel" class="log"></div>
+      </div>
+    </header>
+
+    <section class="stage-shell">
+      <div class="bg-layer" id="bgLayer"></div>
       <div class="portrait-wrap"><img id="portrait" class="portrait" alt="角色像素立绘" /></div>
-      <div id="charInfo" class="tiny"></div>
-      <div id="routeHint" class="tiny">路线趋近提示：尚未开始。</div>
-      <div class="ui-toggles" aria-label="移动端显示设置">
-        <label><input id="hidePortraitToggle" type="checkbox" />隐藏立绘</label>
-        <label><input id="compactUiToggle" type="checkbox" />缩小UI</label>
-      </div>
-      <div class="stats">
-        <div>理性 ↔ 感性<div class="bar"><span id="barLogic"></span></div></div>
-        <div>合作 ↔ 对抗<div class="bar"><span id="barCoop"></span></div></div>
-        <div>探索 ↔ 保守<div class="bar"><span id="barExplore"></span></div></div>
-      </div>
-      <div id="routeForecast" class="forecast">终章预测：尚未进入预测窗口。</div>
-      <div class="route-diagnosis">
-        <div class="tiny">路线诊断（最近 8 次选择）</div>
-        <div id="routeDiagnosisList" class="diag-list"></div>
-      </div>
-      <div class="tiny">剧情日志（可回看）</div>
-      <div id="logPanel" class="log"></div>
-      <div class="controls">
-        <button id="savePanelBtn" aria-label="打开磁带存档面板">磁带存档面板</button><button id="archivePanelBtn" aria-label="打开线索板和档案">线索板/档案</button>
-        <button id="endingPanelBtn" aria-label="打开结局档案馆">结局档案馆</button>
-        <button id="bgmBtn" aria-label="切换音频总线">开启音频总线</button>
-        <button id="resetBtn" aria-label="重开当前流程">重开本局</button><button data-load="auto" aria-label="读取自动存档">读取自动存档</button>
-        <div id="audioUnlockHint" class="audio-unlock" aria-live="polite">
-          音频尚未解锁：浏览器需要一次用户交互后才能播放。
-          <button id="audioUnlockBtn" aria-label="通过用户交互解锁音频播放">点击开启音频</button>
+    </section>
+
+    <section class="dialogue-shell">
+      <div class="scene-head">
+        <strong id="sceneTitle">序章</strong>
+        <span id="clock">22:11 / 雨夜</span>
+        <div class="playback-controls">
+          <button id="showAllBtn" aria-label="立即显示当前全文">全文</button>
+          <button id="expandStoryBtn" aria-label="展开或收起当前全文">展开全文</button>
+          <button id="autoBtn" aria-label="切换自动播放">Auto</button>
+          <button id="skipBtn" aria-label="切换已读跳过">Skip</button>
+          <button id="historyBtn" aria-label="打开历史回放面板">History</button>
         </div>
       </div>
-    </aside>
-    <section class="right">
-      <div class="scene-head"><strong id="sceneTitle">序章</strong><span id="clock">22:11 / 雨夜</span><div class="playback-controls"><button id="showAllBtn" aria-label="立即显示当前全文">全文</button><button id="autoBtn" aria-label="切换自动播放">Auto</button><button id="skipBtn" aria-label="切换已读跳过">Skip</button><button id="historyBtn" aria-label="打开历史回放面板">History</button></div></div>
-      <div class="bg-layer" id="bgLayer"></div>
       <div id="story" class="story"></div>
       <div id="choices" class="choices"></div>
     </section>
+
+    <footer class="controls tape-controls">
+      <button id="savePanelBtn" aria-label="打开磁带存档面板">磁带存档面板</button>
+      <button id="archivePanelBtn" aria-label="打开线索板和档案">线索板/档案</button>
+      <button id="endingPanelBtn" aria-label="打开结局档案馆">结局档案馆</button>
+      <button id="bgmBtn" aria-label="切换音频总线">开启音频总线</button>
+      <button id="resetBtn" aria-label="重开当前流程">重开本局</button>
+      <button data-load="auto" aria-label="读取自动存档">读取自动存档</button>
+      <div id="audioUnlockHint" class="audio-unlock" aria-live="polite">
+        音频尚未解锁：浏览器需要一次用户交互后才能播放。
+        <button id="audioUnlockBtn" aria-label="通过用户交互解锁音频播放">点击开启音频</button>
+      </div>
+    </footer>
   </main>
+
+  <div class="story-modal" id="storyModal" aria-hidden="true">
+    <section class="story-modal-shell">
+      <div class="save-head">
+        <strong>📖 当前全文</strong>
+        <button id="storyModalClose" aria-label="关闭全文弹窗">关闭</button>
+      </div>
+      <div id="storyModalBody" class="story-modal-body"></div>
+    </section>
+  </div>
 
   <div class="save-panel" id="savePanel" aria-hidden="true">
     <section class="save-shell">
@@ -120,6 +150,7 @@
     </div>
     <div id="historyBody" class="body"></div>
   </div>
+
   <script type="module" src="js/main.js"></script>
 </body>
 </html>
