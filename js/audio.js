@@ -1,17 +1,33 @@
 export class BgmSynth {
   constructor() {
     this.ctx = null;
+    this.master = null;
     this.timer = null;
     this.on = false;
+    this.volume = 0.5;
   }
 
-  tone(freq, time, len, type='sawtooth', gain=0.02) {
+  ensureCtx() {
+    this.ctx = this.ctx || new (window.AudioContext || window.webkitAudioContext)();
+    if (!this.master) {
+      this.master = this.ctx.createGain();
+      this.master.gain.value = this.volume;
+      this.master.connect(this.ctx.destination);
+    }
+  }
+
+  setVolume(value) {
+    this.volume = Math.min(1, Math.max(0, value));
+    if (this.master) this.master.gain.value = this.volume;
+  }
+
+  tone(freq, time, len, type = 'sawtooth', gain = 0.02) {
     const o = this.ctx.createOscillator();
     const g = this.ctx.createGain();
     o.type = type;
     o.frequency.value = freq;
     g.gain.value = gain;
-    o.connect(g).connect(this.ctx.destination);
+    o.connect(g).connect(this.master);
     o.start(time);
     o.stop(time + len);
   }
@@ -25,7 +41,7 @@ export class BgmSynth {
   }
 
   async start() {
-    this.ctx = this.ctx || new (window.AudioContext || window.webkitAudioContext)();
+    this.ensureCtx();
     if (this.ctx.state === 'suspended') await this.ctx.resume();
     this.playLoop();
     this.timer = setInterval(() => this.playLoop(), 2000);
