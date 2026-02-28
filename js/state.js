@@ -24,7 +24,13 @@ export const createInitialState = () => ({
   clearedRuns: [],
   unlockedEndings: [],
   bgmEnabled: false,
-  bgmVolume: 0.5
+  bgmVolume: 0.5,
+  audioSettings: {
+    master: 0.72,
+    music: { enabled: true, volume: 0.55 },
+    ambience: { enabled: true, volume: 0.48 },
+    sfx: { enabled: true, volume: 0.65 }
+  }
 });
 
 export function normalizeState(raw = {}) {
@@ -55,6 +61,22 @@ export function normalizeState(raw = {}) {
   normalized.unlockedEndings = Array.isArray(raw.unlockedEndings) ? raw.unlockedEndings : [];
   normalized.bgmEnabled = typeof raw.bgmEnabled === 'boolean' ? raw.bgmEnabled : false;
   normalized.bgmVolume = typeof raw.bgmVolume === 'number' ? raw.bgmVolume : 0.5;
+  const audio = raw.audioSettings || {};
+  normalized.audioSettings = {
+    master: typeof audio.master === 'number' ? audio.master : normalized.audioSettings.master,
+    music: {
+      enabled: typeof audio.music?.enabled === 'boolean' ? audio.music.enabled : normalized.audioSettings.music.enabled,
+      volume: typeof audio.music?.volume === 'number' ? audio.music.volume : normalized.audioSettings.music.volume
+    },
+    ambience: {
+      enabled: typeof audio.ambience?.enabled === 'boolean' ? audio.ambience.enabled : normalized.audioSettings.ambience.enabled,
+      volume: typeof audio.ambience?.volume === 'number' ? audio.ambience.volume : normalized.audioSettings.ambience.volume
+    },
+    sfx: {
+      enabled: typeof audio.sfx?.enabled === 'boolean' ? audio.sfx.enabled : normalized.audioSettings.sfx.enabled,
+      volume: typeof audio.sfx?.volume === 'number' ? audio.sfx.volume : normalized.audioSettings.sfx.volume
+    }
+  };
   return normalized;
 }
 
