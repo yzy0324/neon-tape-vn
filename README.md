@@ -45,6 +45,7 @@ python -m http.server 8000
 ```bash
 python scripts/selfcheck.py
 node js/selfcheck.js
+node tools/validate_story.js
 ```
 
 该脚本检查：
@@ -58,3 +59,37 @@ node js/selfcheck.js
 - 3 轨音频关键实现标记存在（`setAmbienceForScene` / `playSfx`）
 - 键盘快捷键与无障碍标签存在（Enter / 1,2,3 / S / L / aria-label）
 - 新增 Node 自检：场景数、结局、schemaVersion、饮品数量、flags 数量、存档关键字段
+
+
+## 剧情 Scene Schema（data/story.js）
+
+为避免剧情数据写错导致运行时崩溃，`data/story.js` 现在提供以下结构约束：
+
+- `STORY_SCHEMA`：声明 scene 必填/选填字段与 choice 可选字段。
+- `STORY_FLAG_WHITELIST` / `STORY_ITEM_WHITELIST` / `STORY_RELATION_WHITELIST`：可用 flag / item / relation 白名单。
+- 每个 scene 会自动补全默认字段：
+  - `type`（默认 `dialogue`）
+  - `tags`（默认 `[]`）
+  - `requires`（默认 `{}`）
+  - `effects`（默认 `[]`）
+  - choice 的 `requires`（默认取 `if` 或 `{}`）
+
+### 如何写新 scene
+
+1. 在 `rawScenes` 中新增唯一 `sceneId`（如 `s11`）。
+2. 至少填写：`title/speaker/bg/text/choices`。
+3. 每个 choice 至少包含 `text + next`。
+4. 如有条件分支，仅使用：`flagsAll`、`flagsAny`、`itemAny`、`relAtLeast`。
+5. 使用到的 flag/item/relation 必须先加入白名单导出常量。
+6. 提交前运行：
+
+```bash
+node tools/validate_story.js
+```
+
+验证器会检查：
+- sceneId 唯一性
+- goto/next 目标是否存在
+- 条件字段是否合法
+- flag/item/relation 是否在白名单中
+- 报错信息包含 `sceneId` 与行号，便于快速定位
