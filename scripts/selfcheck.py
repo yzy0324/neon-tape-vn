@@ -18,6 +18,7 @@ DRINK_PANEL_JS = ROOT / "js" / "drink.js"
 STATE_JS = ROOT / "js" / "state.js"
 AUDIO_JS = ROOT / "js" / "audio.js"
 STORY_VALIDATOR = ROOT / "tools" / "validate_story.js"
+CI_YML = ROOT / ".github" / "workflows" / "ci.yml"
 
 
 def fail(message: str) -> None:
@@ -30,7 +31,7 @@ def ok(message: str) -> None:
 
 
 def main() -> None:
-    for path in [INDEX, MAIN_JS, DATA_JS, STORY_JS, DRINKS_JS, DRINK_PANEL_JS, STATE_JS, AUDIO_JS, STORY_VALIDATOR]:
+    for path in [INDEX, MAIN_JS, DATA_JS, STORY_JS, DRINKS_JS, DRINK_PANEL_JS, STATE_JS, AUDIO_JS, STORY_VALIDATOR, CI_YML]:
         if not path.exists():
             fail(f"missing required file: {path.relative_to(ROOT)}")
 
@@ -42,6 +43,8 @@ def main() -> None:
     drink_panel_js = DRINK_PANEL_JS.read_text(encoding="utf-8")
     state_js = STATE_JS.read_text(encoding="utf-8")
     audio_js = AUDIO_JS.read_text(encoding="utf-8")
+
+    ci_yml = CI_YML.read_text(encoding="utf-8")
 
     merged = "\n".join([html, main_js, data_js, story_js, drinks_js, drink_panel_js, state_js, audio_js])
 
@@ -154,6 +157,12 @@ def main() -> None:
     ok(f"history panel limit >= 30 ({history_limit})")
 
     
+
+
+    for token in ["python scripts/selfcheck.py", "node tools/validate_story.js", "pull_request"]:
+        if token not in ci_yml:
+            fail(f"CI workflow missing token: {token}")
+    ok("CI workflow includes PR + selfcheck + story validator")
 
     validator_result = subprocess.run(["node", str(STORY_VALIDATOR)], cwd=ROOT, capture_output=True, text=True)
     if validator_result.returncode != 0:

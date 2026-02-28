@@ -1,0 +1,12 @@
+{
+  "name": "neon-tape-vn",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Static VN CI smoke tooling",
+  "scripts": {
+    "smoke": "node scripts/smoke_test.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.52.0"
+  }
+}
