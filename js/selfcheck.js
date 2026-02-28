@@ -8,6 +8,7 @@ const ROOT = path.resolve(__dirname, '..');
 
 const files = {
   html: path.join(ROOT, 'index.html'),
+  css: path.join(ROOT, 'css', 'ui.css'),
   main: path.join(ROOT, 'js', 'main.js'),
   story: path.join(ROOT, 'data', 'story.js'),
   chap1: path.join(ROOT, 'data', 'chapters', 'chap1.js'),
@@ -34,6 +35,7 @@ function read(file) {
 
 const html = read(files.html);
 const main = read(files.main);
+const css = read(files.css);
 const story = read(files.story);
 const chap1 = read(files.chap1);
 const chap2 = read(files.chap2);
@@ -107,6 +109,25 @@ ok('keyboard shortcuts exist');
 
 if (!html.includes('aria-label')) fail('aria-label not found in index.html');
 ok('aria-label exists');
+
+
+const layoutTokens = [
+  'overflow-x: hidden',
+  'min-height: 100dvh',
+  '.choices',
+  'overflow-wrap: anywhere',
+  '.save-shell',
+  'max-height: calc(100dvh - 24px)'
+];
+for (const token of layoutTokens) {
+  if (!css.includes(token)) fail(`missing responsive layout token in css/ui.css: ${token}`);
+}
+ok('responsive anti-overflow tokens exist in css/ui.css');
+
+for (const token of ['updateViewportHeightVar', 'reportHorizontalOverflow', 'togglePanelWithLayoutCheck']) {
+  if (!main.includes(token)) fail(`missing runtime layout check token: ${token}`);
+}
+ok('runtime layout self-check helpers exist');
 
 if (!state.includes('hasCondition')) fail('state condition checker missing');
 ok('state condition checker exists');
