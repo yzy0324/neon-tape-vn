@@ -5,10 +5,11 @@ import { renderDrinkPanel } from './drink.js';
 import { IMPORTANT_FLAG_META, applyStateDelta, createInitialState, hasCondition, normalizeState } from './state.js';
 
 const SAVE_PREFIX = 'neonTape_';
-const SAVE_SCHEMA_VERSION = 6;
+const SAVE_SCHEMA_VERSION = 7;
 const AUTO_SLOT = 'auto';
 const TITLE_SCENE = '__TITLE__';
 const META_ARCHIVE_KEY = `${SAVE_PREFIX}endingArchive`;
+const AUDIO_SETTINGS_KEY = `${SAVE_PREFIX}audioSettings`;
 const REPLAY_SLOT = 'slot3';
 const ROUTE_SCENE_MAP = { A: 's10A', B: 's10B', C: 's10C' };
 const TYPEWRITER_SPEED = 24;
@@ -48,6 +49,19 @@ const saveStatusEl = document.getElementById('saveStatus');
 const saveTextEl = document.getElementById('saveTransferText');
 const volumeSlider = document.getElementById('bgmVolume');
 const volumeLabel = document.getElementById('bgmVolumeLabel');
+const masterVolumeSlider = document.getElementById('masterVolume');
+const masterVolumeLabel = document.getElementById('masterVolumeLabel');
+const musicVolumeSlider = document.getElementById('musicVolume');
+const musicVolumeLabel = document.getElementById('musicVolumeLabel');
+const ambienceVolumeSlider = document.getElementById('ambienceVolume');
+const ambienceVolumeLabel = document.getElementById('ambienceVolumeLabel');
+const sfxVolumeSlider = document.getElementById('sfxVolume');
+const sfxVolumeLabel = document.getElementById('sfxVolumeLabel');
+const musicToggle = document.getElementById('musicToggle');
+const ambienceToggle = document.getElementById('ambienceToggle');
+const sfxToggle = document.getElementById('sfxToggle');
+const audioUnlockHint = document.getElementById('audioUnlockHint');
+const audioUnlockBtn = document.getElementById('audioUnlockBtn');
 const archivePanelEl = document.getElementById('archivePanel');
 const archiveBodyEl = document.getElementById('archiveBody');
 const endingPanelEl = document.getElementById('endingPanel');
@@ -419,6 +433,7 @@ function renderReplayScene() {
     const tempState = { ...state, ...(replay.record.snapshot || {}), score: tendencyPairs() };
     storyEl.innerHTML = `<div class="tiny">只读回放，不会改变当前存档。</div>${typeof scene.text === 'function' ? scene.text(tempState) : scene.text}`;
     bgLayerEl.style.background = bgStyles[scene.bg] || bgStyles.bar;
+  synth.setAmbienceForScene(scene);
     setPortrait(c, scene.expression || 'neutral');
     charInfoEl.textContent = `${c.name}｜${c.desc}`;
   }
@@ -440,10 +455,50 @@ function renderReplayScene() {
   choiceEl.append(prevBtn, nextBtn, branchBtn, exitBtn);
 }
 
+function loadStoredAudioSettings() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(AUDIO_SETTINGS_KEY) || '{}');
+    if (parsed && typeof parsed === 'object') state.audioSettings = normalizeState({ audioSettings: parsed }).audioSettings;
+  } catch (_err) {
+    state.audioSettings = normalizeState({}).audioSettings;
+  }
+  synth.applySettings(state.audioSettings);
+}
+
+function persistAudioSettings() {
+  localStorage.setItem(AUDIO_SETTINGS_KEY, JSON.stringify(state.audioSettings));
+}
+
+function updateAudioUnlockHint() {
+  const shouldShow = state.bgmEnabled && !synth.unlocked;
+  audioUnlockHint.classList.toggle('show', shouldShow);
+}
+
+function applyAudioSettingsAndPersist() {
+  state.audioSettings.music.volume = state.bgmVolume;
+  synth.applySettings(state.audioSettings);
+  persistAudioSettings();
+  autoSave(false);
+}
+
 function updateBgmUI() {
-  bgmBtn.textContent = state.bgmEnabled ? '关闭 BGM' : '开启 BGM';
+  bgmBtn.textContent = state.bgmEnabled ? '关闭音频总线' : '开启音频总线';
   volumeSlider.value = String(Math.round(state.bgmVolume * 100));
   volumeLabel.textContent = `${Math.round(state.bgmVolume * 100)}%`;
+
+  masterVolumeSlider.value = String(Math.round(state.audioSettings.master * 100));
+  masterVolumeLabel.textContent = `${Math.round(state.audioSettings.master * 100)}%`;
+  musicVolumeSlider.value = String(Math.round(state.audioSettings.music.volume * 100));
+  musicVolumeLabel.textContent = `${Math.round(state.audioSettings.music.volume * 100)}%`;
+  ambienceVolumeSlider.value = String(Math.round(state.audioSettings.ambience.volume * 100));
+  ambienceVolumeLabel.textContent = `${Math.round(state.audioSettings.ambience.volume * 100)}%`;
+  sfxVolumeSlider.value = String(Math.round(state.audioSettings.sfx.volume * 100));
+  sfxVolumeLabel.textContent = `${Math.round(state.audioSettings.sfx.volume * 100)}%`;
+
+  musicToggle.checked = state.audioSettings.music.enabled;
+  ambienceToggle.checked = state.audioSettings.ambience.enabled;
+  sfxToggle.checked = state.audioSettings.sfx.enabled;
+  updateAudioUnlockHint();
 }
 
 function applyEffect(effect = {}) {
@@ -490,6 +545,7 @@ function makeSavePayload() {
     unlockedEndings: state.unlockedEndings,
     bgmEnabled: state.bgmEnabled,
     bgmVolume: state.bgmVolume,
+    audioSettings: state.audioSettings,
     routeLock: state.routeLock,
     choiceHistory: state.choiceHistory,
     orderHistory: state.orderHistory,
@@ -514,6 +570,7 @@ function parseSaveData(rawData) {
     unlockedEndings: Array.isArray(data.unlockedEndings) ? data.unlockedEndings.filter((r) => ROUTES[r]) : [],
     bgmEnabled: typeof data.bgmEnabled === 'boolean' ? data.bgmEnabled : !!data.bgmOn,
     bgmVolume: clamp(typeof data.bgmVolume === 'number' ? data.bgmVolume : 0.5, 0, 1),
+    audioSettings: data.audioSettings,
     routeLock: data.routeLock && ROUTES[data.routeLock] ? data.routeLock : null,
     choiceHistory: data.choiceHistory,
     orderHistory: data.orderHistory,
@@ -530,7 +587,9 @@ function applySaveData(data) {
   stopTyping();
   stopAutoAdvance();
   Object.assign(state, normalizeState(data));
-  synth.setVolume(state.bgmVolume);
+  state.audioSettings.music.volume = state.bgmVolume;
+  synth.applySettings(state.audioSettings);
+  persistAudioSettings();
   updateBgmUI();
   ensureArchiveSync();
   renderArchive();
@@ -557,6 +616,7 @@ function showTitle() {
   startBtn.onclick = resetGame;
   choiceEl.appendChild(startBtn);
   bgLayerEl.style.background = bgStyles.bar;
+  synth.setAmbienceForScene({ bg: 'bar' });
   setPortrait(cast.zero, 'neutral');
   charInfoEl.textContent = `${cast.zero.name}｜${cast.zero.desc}`;
   renderBars();
@@ -620,6 +680,7 @@ function renderOrderScene(scene) {
     const orderLine = `${cast[scene.npcKey]?.name || scene.npcKey} ← ${payload.drink.name}${payload.extras.length ? ` + ${payload.extras.map((item) => item.name).join(' / ')}` : ''}`;
     state.orderHistory.push(orderLine);
     addLog(`[点单] ${orderLine}`);
+    synth.playSfx('confirm');
     state.current = scene.next;
     renderScene();
   });
@@ -633,10 +694,14 @@ function renderChoiceScene(scene) {
     const btn = document.createElement('button');
     btn.textContent = ch.text;
     btn.onclick = () => {
+      const prevInventoryCount = state.inventory.length;
+      const prevFlags = Object.keys(state.flags).length;
       applyEffect(ch.effect);
       applyStateDelta(state, ch);
       state.choiceHistory.push({ sceneId: state.current, scene: scene.title, choice: ch.text, effectSummary: summarizeEffect(ch.effect) });
       addLog(`▶ ${ch.text}`);
+      if (state.inventory.length > prevInventoryCount || Object.keys(state.flags).length > prevFlags) synth.playSfx('clue');
+      else synth.playSfx('confirm');
       if (ch.routeLock) {
         lockRoute();
         state.current = ch.next || ROUTE_SCENE_MAP[state.routeLock];
@@ -661,6 +726,7 @@ function renderScene() {
   titleEl.textContent = scene.title;
   const sceneText = getSceneText(scene) || '';
   bgLayerEl.style.background = bgStyles[scene.bg] || bgStyles.bar;
+  synth.setAmbienceForScene(scene);
   const c = cast[scene.speaker];
   setPortrait(c, scene.expression || 'neutral');
   charInfoEl.textContent = `${c.name}｜${c.desc}`;
@@ -698,6 +764,7 @@ function load(slot) {
     applySaveData(parsed);
     renderScene();
     saveStatusEl.textContent = `已读取 ${slot.toUpperCase()}，schema v${parsed.schemaVersion}`;
+    synth.playSfx('confirm');
   } catch (_err) {
     alert('存档损坏或格式不兼容。');
   }
@@ -724,7 +791,7 @@ function exportSave(slot) {
   if (!raw) return (saveStatusEl.textContent = `槽位 ${slot.toUpperCase()} 没有存档。`);
   saveTextEl.value = raw;
   copyToClipboard(raw)
-    .then(() => (saveStatusEl.textContent = `已导出 ${slot.toUpperCase()} 到文本框并复制剪贴板。`))
+    .then(() => { saveStatusEl.textContent = `已导出 ${slot.toUpperCase()} 到文本框并复制剪贴板。`; synth.playSfx('confirm'); })
     .catch(() => (saveStatusEl.textContent = `已导出 ${slot.toUpperCase()} 到文本框，剪贴板复制失败。`));
 }
 
@@ -735,6 +802,7 @@ function importSave(slot) {
     const parsed = parseSaveData(raw);
     localStorage.setItem(`${SAVE_PREFIX}${slot}`, JSON.stringify({ ...parsed, schemaVersion: SAVE_SCHEMA_VERSION }));
     saveStatusEl.textContent = `导入成功：${slot.toUpperCase()}（已兼容为 schema v${SAVE_SCHEMA_VERSION}）`;
+    synth.playSfx('confirm');
   } catch (_err) {
     saveStatusEl.textContent = '导入失败：JSON 格式错误或字段缺失。';
   }
@@ -749,22 +817,88 @@ document.getElementById('archivePanelClose').onclick = () => archivePanelEl.clas
 document.getElementById('endingPanelClose').onclick = () => endingPanelEl.classList.remove('open');
 volumeSlider.oninput = () => {
   state.bgmVolume = clamp(Number(volumeSlider.value) / 100, 0, 1);
-  synth.setVolume(state.bgmVolume);
+  state.audioSettings.music.volume = state.bgmVolume;
+  applyAudioSettingsAndPersist();
   updateBgmUI();
-  autoSave(false);
 };
+
+masterVolumeSlider.oninput = () => {
+  state.audioSettings.master = clamp(Number(masterVolumeSlider.value) / 100, 0, 1);
+  applyAudioSettingsAndPersist();
+  updateBgmUI();
+};
+
+musicVolumeSlider.oninput = () => {
+  state.audioSettings.music.volume = clamp(Number(musicVolumeSlider.value) / 100, 0, 1);
+  state.bgmVolume = state.audioSettings.music.volume;
+  applyAudioSettingsAndPersist();
+  updateBgmUI();
+};
+
+ambienceVolumeSlider.oninput = () => {
+  state.audioSettings.ambience.volume = clamp(Number(ambienceVolumeSlider.value) / 100, 0, 1);
+  synth.applySettings(state.audioSettings);
+  synth.setAmbienceForScene(scenes[state.current] || { bg: 'bar' });
+  persistAudioSettings();
+  autoSave(false);
+  updateBgmUI();
+};
+
+sfxVolumeSlider.oninput = () => {
+  state.audioSettings.sfx.volume = clamp(Number(sfxVolumeSlider.value) / 100, 0, 1);
+  applyAudioSettingsAndPersist();
+  updateBgmUI();
+};
+
+musicToggle.onchange = () => {
+  state.audioSettings.music.enabled = musicToggle.checked;
+  applyAudioSettingsAndPersist();
+  updateBgmUI();
+};
+
+ambienceToggle.onchange = () => {
+  state.audioSettings.ambience.enabled = ambienceToggle.checked;
+  applyAudioSettingsAndPersist();
+  updateBgmUI();
+};
+
+sfxToggle.onchange = () => {
+  state.audioSettings.sfx.enabled = sfxToggle.checked;
+  applyAudioSettingsAndPersist();
+  updateBgmUI();
+};
+
+async function enableAudioFromUserGesture() {
+  const started = await synth.start();
+  if (started) {
+    state.bgmEnabled = true;
+    synth.applySettings(state.audioSettings);
+    synth.setAmbienceForScene(scenes[state.current] || { bg: 'bar' });
+    updateBgmUI();
+    autoSave(false);
+  }
+}
+
 bgmBtn.onclick = async () => {
   if (!synth.on) {
-    await synth.start();
-    synth.setVolume(state.bgmVolume);
-    state.bgmEnabled = true;
+    await enableAudioFromUserGesture();
   } else {
     synth.stop();
     state.bgmEnabled = false;
+    updateBgmUI();
+    autoSave(false);
   }
-  updateBgmUI();
-  autoSave(false);
 };
+
+audioUnlockBtn.onclick = async () => {
+  await enableAudioFromUserGesture();
+};
+
+document.addEventListener('click', (event) => {
+  if (event.target instanceof HTMLElement && event.target.closest('button')) {
+    synth.playSfx('click');
+  }
+});
 
 showAllBtn.onclick = () => {
   showFullText();
@@ -789,11 +923,12 @@ historyBtn.onclick = () => {
 };
 historyCloseBtn.onclick = () => historyPanelEl.classList.remove('open');
 
-document.querySelectorAll('[data-save]').forEach((btn) => { btn.onclick = () => { save(btn.dataset.save); saveStatusEl.textContent = `已保存到 ${btn.dataset.save.toUpperCase()}`; }; });
+document.querySelectorAll('[data-save]').forEach((btn) => { btn.onclick = () => { save(btn.dataset.save); saveStatusEl.textContent = `已保存到 ${btn.dataset.save.toUpperCase()}`; synth.playSfx('save'); }; });
 document.querySelectorAll('[data-load]').forEach((btn) => { btn.onclick = () => load(btn.dataset.load); });
 document.querySelectorAll('[data-export]').forEach((btn) => { btn.onclick = () => exportSave(btn.dataset.export); });
 document.querySelectorAll('[data-import]').forEach((btn) => { btn.onclick = () => importSave(btn.dataset.import); });
 
+loadStoredAudioSettings();
 updateBgmUI();
 ensureArchiveSync();
 renderArchive();

@@ -15,6 +15,7 @@ STORY_JS = ROOT / "data" / "story.js"
 DRINKS_JS = ROOT / "data" / "drinks.js"
 DRINK_PANEL_JS = ROOT / "js" / "drink.js"
 STATE_JS = ROOT / "js" / "state.js"
+AUDIO_JS = ROOT / "js" / "audio.js"
 
 
 def fail(message: str) -> None:
@@ -27,7 +28,7 @@ def ok(message: str) -> None:
 
 
 def main() -> None:
-    for path in [INDEX, MAIN_JS, DATA_JS, STORY_JS, DRINKS_JS, DRINK_PANEL_JS, STATE_JS]:
+    for path in [INDEX, MAIN_JS, DATA_JS, STORY_JS, DRINKS_JS, DRINK_PANEL_JS, STATE_JS, AUDIO_JS]:
         if not path.exists():
             fail(f"missing required file: {path.relative_to(ROOT)}")
 
@@ -38,8 +39,9 @@ def main() -> None:
     drinks_js = DRINKS_JS.read_text(encoding="utf-8")
     drink_panel_js = DRINK_PANEL_JS.read_text(encoding="utf-8")
     state_js = STATE_JS.read_text(encoding="utf-8")
+    audio_js = AUDIO_JS.read_text(encoding="utf-8")
 
-    merged = "\n".join([html, main_js, data_js, story_js, drinks_js, drink_panel_js, state_js])
+    merged = "\n".join([html, main_js, data_js, story_js, drinks_js, drink_panel_js, state_js, audio_js])
 
     required_strings = [
         "NEON TAPE_017",
@@ -73,7 +75,12 @@ def main() -> None:
         "showAllBtn",
         "readTextHashes",
         "dialogueHistory",
-        "historyPanel"
+        "historyPanel",
+        "audioUnlockBtn",
+        "masterVolume",
+        "ambienceVolume",
+        "sfxVolume",
+        "audioSettings"
     ]
     for token in required_strings:
         if token not in merged:
@@ -124,10 +131,16 @@ def main() -> None:
         fail("manual save slots < 3")
     ok("manual save slots >= 3")
 
-    for token in ["sceneId", "tendency", "tendencies", "flags", "inventory", "relations", "log", "bgmEnabled", "bgmVolume", "orderHistory", "orderDrafts", "pathHistory", "dialogueHistory", "readTextHashes", "clearedRuns"]:
+    for token in ["sceneId", "tendency", "tendencies", "flags", "inventory", "relations", "log", "bgmEnabled", "bgmVolume", "audioSettings", "orderHistory", "orderDrafts", "pathHistory", "dialogueHistory", "readTextHashes", "clearedRuns"]:
         if token not in main_js:
             fail(f"missing save payload key indicator: {token}")
     ok("save payload includes required keys")
+
+
+    for token in ["setAmbienceForScene", "playSfx", "music", "ambience", "sfx"]:
+        if token not in audio_js:
+            fail(f"missing audio engine token: {token}")
+    ok("3-track audio engine tokens present")
 
 
     history_limit_match = re.search(r"const\s+HISTORY_PANEL_LIMIT\s*=\s*(\d+)", main_js)

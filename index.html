@@ -43,6 +43,11 @@
     .flow-svg{width:100%;height:auto;border:1px solid rgba(47,243,224,.25);border-radius:8px;background:rgba(8,5,22,.65)}
     .volume-wrap{grid-column:1/-1;border:1px solid rgba(255,205,141,.35);border-radius:10px;padding:8px;background:rgba(18,9,40,.7)}
     .volume-wrap input{width:100%}
+    .audio-grid{display:grid;gap:8px}
+    .audio-row{display:grid;grid-template-columns:90px 1fr auto;align-items:center;gap:8px;font-size:12px}
+    .audio-row label{display:flex;align-items:center;gap:6px}
+    .audio-unlock{display:none;margin-top:8px;padding:8px;border:1px dashed rgba(255,205,141,.45);border-radius:8px;background:rgba(27,14,52,.72);font-size:12px;color:#ffe9a6}
+    .audio-unlock.show{display:block}
     button{border:1px solid rgba(255,205,141,.5);border-radius:8px;padding:8px;background:linear-gradient(120deg,rgba(255,138,91,.2),rgba(142,88,255,.3));color:#fff3dd;cursor:pointer;font-size:13px}
     button:hover{transform:translateY(-1px);box-shadow:0 0 10px rgba(255,150,190,.5)}
     .right{display:flex;flex-direction:column;overflow:hidden}
@@ -88,8 +93,12 @@
       <div class="controls">
         <button id="savePanelBtn">磁带存档面板</button><button id="archivePanelBtn">线索板/档案</button>
         <button id="endingPanelBtn">结局档案馆</button>
-        <button id="bgmBtn">开启 BGM</button>
+        <button id="bgmBtn">开启音频总线</button>
         <button id="resetBtn">重开本局</button><button data-load="auto">读取自动存档</button>
+        <div id="audioUnlockHint" class="audio-unlock" aria-live="polite">
+          音频尚未解锁：浏览器需要一次用户交互后才能播放。
+          <button id="audioUnlockBtn">点击开启音频</button>
+        </div>
       </div>
     </aside>
     <section class="right">
@@ -112,8 +121,27 @@
         <div class="slot"><h4>Slot3</h4><div class="row"><button data-save="slot3">保存</button><button data-load="slot3">读取</button><button data-export="slot3">导出</button><button data-import="slot3">导入</button></div></div>
         <div class="slot"><h4>Auto</h4><div class="row"><button data-save="auto">保存</button><button data-load="auto">读取</button><button data-export="auto">导出</button><button data-import="auto">导入</button></div></div>
         <div class="volume-wrap">
-          <div class="tiny">BGM 音量：<span id="bgmVolumeLabel">50%</span></div>
-          <input id="bgmVolume" type="range" min="0" max="100" step="1" value="50" />
+          <div class="tiny">主音量：<span id="masterVolumeLabel">72%</span></div>
+          <input id="masterVolume" type="range" min="0" max="100" step="1" value="72" />
+          <div class="audio-grid">
+            <div class="audio-row">
+              <label><input id="musicToggle" type="checkbox" checked />music</label>
+              <input id="musicVolume" type="range" min="0" max="100" step="1" value="55" />
+              <span id="musicVolumeLabel">55%</span>
+            </div>
+            <div class="audio-row">
+              <label><input id="ambienceToggle" type="checkbox" checked />ambience</label>
+              <input id="ambienceVolume" type="range" min="0" max="100" step="1" value="48" />
+              <span id="ambienceVolumeLabel">48%</span>
+            </div>
+            <div class="audio-row">
+              <label><input id="sfxToggle" type="checkbox" checked />sfx</label>
+              <input id="sfxVolume" type="range" min="0" max="100" step="1" value="65" />
+              <span id="sfxVolumeLabel">65%</span>
+            </div>
+          </div>
+          <div class="tiny">music 快捷音量：<span id="bgmVolumeLabel">55%</span></div>
+          <input id="bgmVolume" type="range" min="0" max="100" step="1" value="55" />
         </div>
       </div>
       <div class="transfer">
