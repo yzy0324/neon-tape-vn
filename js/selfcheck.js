@@ -16,8 +16,7 @@ const files = {
   drinks: path.join(ROOT, 'data', 'drinks.js'),
   state: path.join(ROOT, 'js', 'state.js'),
   validator: path.join(ROOT, 'tools', 'validate_story.js'),
-  balanceReport: path.join(ROOT, 'tools', 'balance_report.js'),
-  basicCheck: path.join(ROOT, 'tests', 'basic_check.js')
+  balanceReport: path.join(ROOT, 'tools', 'balance_report.js')
 };
 
 function fail(msg) {
@@ -45,7 +44,6 @@ const drinks = read(files.drinks);
 const state = read(files.state);
 read(files.validator);
 const balanceReport = read(files.balanceReport);
-const basicCheck = read(files.basicCheck);
 
 const sceneCount = (chapterStory.match(/\bs\d{2}[A-C]?\s*:\s*{/g) || []).length;
 if (sceneCount < 12) fail(`scene count ${sceneCount} < 12`);
@@ -114,12 +112,11 @@ ok('aria-label exists');
 
 
 const layoutTokens = [
-  'overflow: hidden',
-  'height: 100%',
-  'height: calc(var(--vh) * 100 - 14px)',
-  '.story.story-clamped',
+  'overflow-x: hidden',
+  'min-height: 100dvh',
   '.choices',
-  '.story-modal',
+  'overflow-wrap: anywhere',
+  '.save-shell',
   'max-height: calc(100dvh - 24px)'
 ];
 for (const token of layoutTokens) {
@@ -127,15 +124,10 @@ for (const token of layoutTokens) {
 }
 ok('responsive anti-overflow tokens exist in css/ui.css');
 
-for (const token of ['updateViewportHeightVar', 'reportNoScroll', 'togglePanelWithLayoutCheck', 'expandStoryBtn', 'storyModal']) {
+for (const token of ['updateViewportHeightVar', 'reportHorizontalOverflow', 'togglePanelWithLayoutCheck']) {
   if (!main.includes(token)) fail(`missing runtime layout check token: ${token}`);
 }
 ok('runtime layout self-check helpers exist');
-
-for (const token of ['scrollHeight', 'scrollWidth', '390x844']) {
-  if (!basicCheck.includes(token)) fail(`missing no-scroll test token: ${token}`);
-}
-ok('tests/basic_check.js no-scroll checks exist');
 
 if (!state.includes('hasCondition')) fail('state condition checker missing');
 ok('state condition checker exists');
