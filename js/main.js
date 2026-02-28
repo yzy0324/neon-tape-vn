@@ -73,9 +73,12 @@ const historyBtn = document.getElementById('historyBtn');
 const historyPanelEl = document.getElementById('historyPanel');
 const historyBodyEl = document.getElementById('historyBody');
 const historyCloseBtn = document.getElementById('historyClose');
+const hidePortraitToggle = document.getElementById('hidePortraitToggle');
+const compactUiToggle = document.getElementById('compactUiToggle');
 const synth = new BgmSynth();
 
 const endingMeta = loadEndingMeta();
+const UI_PREFS_KEY = `${SAVE_PREFIX}uiPrefs`;
 const replay = { active: false, record: null, index: 0 };
 const playback = {
   timer: null,
@@ -455,6 +458,33 @@ function renderReplayScene() {
   choiceEl.append(prevBtn, nextBtn, branchBtn, exitBtn);
 }
 
+function applyUiPrefs(prefs = {}) {
+  const hidePortrait = !!prefs.hidePortrait;
+  const compactUi = !!prefs.compactUi;
+  document.body.classList.toggle('portrait-hidden', hidePortrait);
+  document.body.classList.toggle('ui-compact', compactUi);
+  if (hidePortraitToggle) hidePortraitToggle.checked = hidePortrait;
+  if (compactUiToggle) compactUiToggle.checked = compactUi;
+}
+
+function loadUiPrefs() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(UI_PREFS_KEY) || '{}');
+    applyUiPrefs(parsed);
+  } catch (_err) {
+    applyUiPrefs({});
+  }
+}
+
+function persistUiPrefs() {
+  const prefs = {
+    hidePortrait: !!hidePortraitToggle?.checked,
+    compactUi: !!compactUiToggle?.checked
+  };
+  localStorage.setItem(UI_PREFS_KEY, JSON.stringify(prefs));
+  applyUiPrefs(prefs);
+}
+
 function loadStoredAudioSettings() {
   try {
     const parsed = JSON.parse(localStorage.getItem(AUDIO_SETTINGS_KEY) || '{}');
@@ -651,6 +681,7 @@ function showEnding(route) {
   choiceEl.innerHTML = '';
   const titleBtn = document.createElement('button');
   titleBtn.textContent = '返回标题';
+  titleBtn.setAttribute('aria-label', '返回标题画面');
   titleBtn.onclick = showTitle;
   choiceEl.appendChild(titleBtn);
   renderLog();
@@ -693,6 +724,7 @@ function renderChoiceScene(scene) {
     if (ch.if && !hasCondition(state, ch.if)) return;
     const btn = document.createElement('button');
     btn.textContent = ch.text;
+    btn.setAttribute('aria-label', `选项 ${ch.text}`);
     btn.onclick = () => {
       const prevInventoryCount = state.inventory.length;
       const prevFlags = Object.keys(state.flags).length;
@@ -923,11 +955,54 @@ historyBtn.onclick = () => {
 };
 historyCloseBtn.onclick = () => historyPanelEl.classList.remove('open');
 
+document.addEventListener('keydown', (event) => {
+  const target = event.target;
+  const typing = target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
+  if (typing) return;
+
+  if (event.key === 'Enter') {
+    if (savePanelEl.classList.contains('open') || archivePanelEl.classList.contains('open') || endingPanelEl.classList.contains('open')) return;
+    event.preventDefault();
+    if (!playback.typingDone) {
+      showFullText();
+      queueAutoAdvance();
+      return;
+    }
+    const firstChoice = choiceEl.querySelector('button');
+    if (firstChoice) firstChoice.click();
+    return;
+  }
+
+  if (['1', '2', '3'].includes(event.key)) {
+    const idx = Number(event.key) - 1;
+    const buttons = [...choiceEl.querySelectorAll('button')];
+    if (!buttons[idx]) return;
+    event.preventDefault();
+    buttons[idx].click();
+    return;
+  }
+
+  if (event.key.toLowerCase() === 's') {
+    event.preventDefault();
+    savePanelEl.classList.toggle('open');
+    return;
+  }
+
+  if (event.key.toLowerCase() === 'l') {
+    event.preventDefault();
+    archivePanelEl.classList.toggle('open');
+  }
+});
+
 document.querySelectorAll('[data-save]').forEach((btn) => { btn.onclick = () => { save(btn.dataset.save); saveStatusEl.textContent = `已保存到 ${btn.dataset.save.toUpperCase()}`; synth.playSfx('save'); }; });
 document.querySelectorAll('[data-load]').forEach((btn) => { btn.onclick = () => load(btn.dataset.load); });
 document.querySelectorAll('[data-export]').forEach((btn) => { btn.onclick = () => exportSave(btn.dataset.export); });
 document.querySelectorAll('[data-import]').forEach((btn) => { btn.onclick = () => importSave(btn.dataset.import); });
 
+hidePortraitToggle?.addEventListener('change', persistUiPrefs);
+compactUiToggle?.addEventListener('change', persistUiPrefs);
+
+loadUiPrefs();
 loadStoredAudioSettings();
 updateBgmUI();
 ensureArchiveSync();

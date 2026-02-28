@@ -34,6 +34,9 @@ python -m http.server 8000
 - 音频设置会保存到 `localStorage`（同时写入存档），刷新后自动恢复。
 - 文本播放升级：支持打字机效果（可配置速度）、“全文”一键显示、`Auto` 自动推进、`Skip` 仅跳过已读、`History` 历史回放（最近 40 条，可滚动）。
 - 已读判定按 `sceneId + text hash` 持久化到存档字段 `readTextHashes`，并记录 `dialogueHistory` 以便读档后保留回放。
+- 响应式移动端优化：≤768px 自动收缩布局，避免对话框、立绘、按钮溢出；新增“隐藏立绘 / 缩小UI”开关。
+- 键盘快捷键：`Enter` 下一句、`1/2/3` 选项、`S` 存档面板、`L` 线索档案面板。
+- A11y 基线增强：关键按钮添加 `aria-label`，默认字体与按钮字号上调以提升可读性。
 
 ## 自检与测试
 
@@ -41,6 +44,7 @@ python -m http.server 8000
 
 ```bash
 python scripts/selfcheck.py
+node js/selfcheck.js
 ```
 
 该脚本检查：
@@ -52,3 +56,5 @@ python scripts/selfcheck.py
 - 6 个关键 flags 存在
 - 存档键、手动存档槽、`orderHistory/orderDrafts/pathHistory/clearedRuns/dialogueHistory/readTextHashes/audioSettings` 字段存在
 - 3 轨音频关键实现标记存在（`setAmbienceForScene` / `playSfx`）
+- 键盘快捷键与无障碍标签存在（Enter / 1,2,3 / S / L / aria-label）
+- 新增 Node 自检：场景数、结局、schemaVersion、饮品数量、flags 数量、存档关键字段
