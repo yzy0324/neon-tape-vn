@@ -10,6 +10,8 @@ const files = {
   html: path.join(ROOT, 'index.html'),
   main: path.join(ROOT, 'js', 'main.js'),
   story: path.join(ROOT, 'data', 'story.js'),
+  chap1: path.join(ROOT, 'data', 'chapters', 'chap1.js'),
+  chap2: path.join(ROOT, 'data', 'chapters', 'chap2.js'),
   drinks: path.join(ROOT, 'data', 'drinks.js'),
   state: path.join(ROOT, 'js', 'state.js'),
   validator: path.join(ROOT, 'tools', 'validate_story.js'),
@@ -33,18 +35,39 @@ function read(file) {
 const html = read(files.html);
 const main = read(files.main);
 const story = read(files.story);
+const chap1 = read(files.chap1);
+const chap2 = read(files.chap2);
+const chapterStory = `${chap1}\n${chap2}`;
 const drinks = read(files.drinks);
 const state = read(files.state);
 read(files.validator);
 const balanceReport = read(files.balanceReport);
 
-const sceneCount = (story.match(/\bs\d{2}[A-C]?\s*:\s*{/g) || []).length;
+const sceneCount = (chapterStory.match(/\bs\d{2}[A-C]?\s*:\s*{/g) || []).length;
 if (sceneCount < 12) fail(`scene count ${sceneCount} < 12`);
 ok(`scene count: ${sceneCount}`);
 
 const endings = ['结局A【', '结局B【', '结局C【'];
 if (!endings.every((item) => main.includes(item))) fail('A/B/C endings missing');
 ok('A/B/C endings exist');
+
+if (!story.includes('chapter1Scenes') || !story.includes('chapter2Scenes')) fail('chapter merge import missing in story.js');
+if (!story.includes('...chapter1Scenes') || !story.includes('...chapter2Scenes')) fail('chapter spread merge missing in story.js');
+ok('chapter merge structure exists');
+
+const branchSceneCount = (chap2.match(/\bs1[1-5]\s*:\s*{/g) || []).length;
+if (branchSceneCount < 4) fail(`side branch scenes ${branchSceneCount} < 4`);
+ok(`side branch scenes: ${branchSceneCount}`);
+
+for (const token of ["flagsAll: ['corpDeal', 'truthLeakDraft']", "relAtLeast: { name: 'hacker', val: 1 }", "setFlags: ['ghostHandshake']"]) {
+  if (!chap2.includes(token)) fail(`missing side-branch token: ${token}`);
+}
+ok('side-branch trigger and completion tokens exist');
+
+for (const token of ['st.flags.ghostHandshake', 'sideQuestSuffix', '灰匣注释']) {
+  if (!(`${chap2}\n${main}`).includes(token)) fail(`missing ending variation token: ${token}`);
+}
+ok('ending variation tokens exist');
 
 const schemaMatch = main.match(/const\s+SAVE_SCHEMA_VERSION\s*=\s*(\d+)/);
 if (!schemaMatch || Number(schemaMatch[1]) < 1) fail('invalid SAVE_SCHEMA_VERSION');
@@ -54,11 +77,11 @@ const drinkCount = (drinks.split('export const EXTRAS')[0].match(/id:\s*'[^']+'/
 if (drinkCount < 8) fail(`drink definitions ${drinkCount} < 8`);
 ok(`drink definitions: ${drinkCount}`);
 
-const importantFlagMatch = story.match(/const\s+importantFlags\s*=\s*\[([\s\S]*?)\]/);
-const fallbackFlags = ['corpDeal', 'hackerTrust', 'policeWarrant', 'memoryTape', 'barShielded', 'truthLeakDraft'];
+const importantFlagMatch = chapterStory.match(/const\s+importantFlags\s*=\s*\[([\s\S]*?)\]/);
+const fallbackFlags = ['corpDeal', 'hackerTrust', 'policeWarrant', 'memoryTape', 'barShielded', 'truthLeakDraft', 'ghostHandshake'];
 const flags = importantFlagMatch
   ? [...importantFlagMatch[1].matchAll(/'([^']+)'/g)].map((m) => m[1])
-  : fallbackFlags.filter((f) => story.includes(f));
+  : fallbackFlags.filter((f) => chapterStory.includes(f) || story.includes(f));
 if (flags.length < 6) fail(`important flags ${flags.length} < 6`);
 ok(`important flags: ${flags.length}`);
 

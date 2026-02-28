@@ -48,6 +48,7 @@ node scripts/smoke_test.mjs
 - 新增“路线诊断”面板：展示最近 8 次选择对三维倾向的贡献（每项含正负值条形）。
 - 进入终章前（s09）会显示“预测结局倾向”代号提示（A/B/C），不直接剧透结局名。
 - 3 条结局：A【玻璃停火】/ B【霓虹燃烧】/ C【磁带群星】。
+- 新增可选支线“灰匣协议”（s11-s15）：由 `flags + relations` 触发，不开启支线也可通关；完成后会为 A/B/C 结局追加“灰匣注释”段落。
 - 存档系统：3 个手动槽（Slot1/2/3）+ 1 个自动存档（Auto），介质为 `localStorage`。
 - 存档字段包含 `sceneId`、`tendencies/tendency`、`flags`、`inventory`、`relations`、剧情日志、点单历史/草稿、BGM 状态，并新增 `pathHistory` 与 `clearedRuns`。
 - 新增“结局档案馆”面板：展示 A/B/C 结局解锁状态、每次通关至少 6 条关键选择（含选项与效果）、以及可点击节点流程图。
@@ -95,7 +96,7 @@ npm run balance:report
 
 ## 剧情 Scene Schema（data/story.js）
 
-为避免剧情数据写错导致运行时崩溃，`data/story.js` 现在提供以下结构约束：
+为避免剧情数据写错导致运行时崩溃，`data/story.js`（主入口）会合并 `data/chapters/chap1.js` 与 `data/chapters/chap2.js`，并提供以下结构约束：
 
 - `STORY_SCHEMA`：声明 scene 必填/选填字段与 choice 可选字段。
 - `STORY_FLAG_WHITELIST` / `STORY_ITEM_WHITELIST` / `STORY_RELATION_WHITELIST`：可用 flag / item / relation 白名单。
@@ -108,7 +109,7 @@ npm run balance:report
 
 ### 如何写新 scene
 
-1. 在 `rawScenes` 中新增唯一 `sceneId`（如 `s11`）。
+1. 优先在对应章节文件（`data/chapters/chap1.js` / `chap2.js`）中新增唯一 `sceneId`（如 `s11`）。
 2. 至少填写：`title/speaker/bg/text/choices`。
 3. 每个 choice 至少包含 `text + next`。
 4. 如有条件分支，仅使用：`flagsAll`、`flagsAny`、`itemAny`、`relAtLeast`。
