@@ -37,9 +37,10 @@ def main() -> None:
         "绫濑雾音｜企业联络官",
         "烬线｜街头黑客",
         "韩铬｜义体警探",
-        "结局A",
-        "结局B",
-        "结局C",
+        "路线锁定",
+        "结局A【玻璃停火】",
+        "结局B【霓虹燃烧】",
+        "结局C【磁带群星】",
     ]
     merged = html + "\n" + main_js + "\n" + data_js
     for token in required_strings:
@@ -47,20 +48,20 @@ def main() -> None:
             fail(f"missing required string: {token}")
     ok("key strings present")
 
-    scene_count = len(re.findall(r"\bs\d{2}\s*:\s*{", data_js))
-    if scene_count < 12:
-        fail(f"scene count too low: {scene_count} (expected >= 12)")
-    ok(f"scene count >= 12 ({scene_count})")
+    scene_count = len(re.findall(r"\bs\d{2}[A-C]?\s*:\s*{", data_js))
+    if scene_count < 13:
+        fail(f"scene count too low: {scene_count} (expected >= 13)")
+    ok(f"scene count >= 13 ({scene_count})")
 
-    choice_count = len(re.findall(r"choices\s*:\s*\[", data_js))
-    if choice_count < 6:
-        fail(f"key choice points too low: {choice_count} (expected >= 6)")
-    ok(f"choice points >= 6 ({choice_count})")
-
-    endings = len(re.findall(r"结局[A-C]", main_js))
+    endings = len(re.findall(r"结局[A-C]【", main_js))
     if endings < 3:
         fail(f"ending markers too low: {endings} (expected >= 3)")
     ok(f"ending markers >= 3 ({endings})")
+
+    route_finals = len(re.findall(r"s10[A-C]", data_js))
+    if route_finals < 3:
+        fail(f"route specific final scenes too low: {route_finals} (expected >= 3)")
+    ok(f"route specific final scenes >= 3 ({route_finals})")
 
     keys = sorted(set(re.findall(r"neonTape_[a-zA-Z0-9_]*", merged)))
     if not keys or 'neonTape_' not in keys:
@@ -70,6 +71,11 @@ def main() -> None:
     if "data-save=\"slot1\"" not in html or "data-save=\"slot2\"" not in html or "data-save=\"slot3\"" not in html:
         fail("manual save slots < 3")
     ok("manual save slots >= 3")
+
+    for token in ["routeLock", "choiceHistory", "AUTO_SLOT"]:
+        if token not in main_js:
+            fail(f"missing save payload key indicator: {token}")
+    ok("save payload includes route and review keys")
 
     print("\nSelf-check passed.")
 
