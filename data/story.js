@@ -4,10 +4,10 @@ export const scenes = {
     speaker: 'zero',
     expression: 'neutral',
     bg: 'bar',
-    text: () => '22:11，酸雨沿着酒吧霓虹玻璃流成一条条发光裂缝。匿名点单连续跳了三次：同一串前缀来自企业网、街区暗网、执法内网。\n\n你把这串前缀写进手账，标注“首个伏笔：订单索引”。一名从不说话的快递员在门口停了两秒。',
+    text: '22:11，酸雨沿着酒吧霓虹玻璃流成一条条发光裂缝。匿名点单连续跳了三次：同一串前缀来自企业网、街区暗网、执法内网。你闻到今晚不是普通夜班。',
     choices: [
-      { text: '先把后厨监控和通风管线全开，按流程准备。', effect: { logic: 1, preserve: 1 }, next: 's01' },
-      { text: '调高音乐和霓虹，先稳住气氛再见客。', effect: { emotion: 1, coop: 1 }, next: 's01' }
+      { text: '先启动吧台电磁屏障。', effect: { logic: 1, preserve: 1 }, setFlags: ['barShielded'], next: 's01' },
+      { text: '保持酒吧开放，便于观察来客。', effect: { emotion: 1, explore: 1 }, clearFlags: ['barShielded'], next: 's01' }
     ]
   },
   s01: {
@@ -29,32 +29,25 @@ export const scenes = {
         reply: '雾音轻敲杯壁："很好，冷静且可执行。我们可以谈审计窗口。"'
       },
       {
-        id: 'corp-risky',
-        when: ({ profile }) => profile.alcohol >= 4 || profile.stim >= 6,
-        effect: { oppose: 1, explore: 1 },
-        setFlags: { corpTrust: false },
-        reply: '雾音皱眉："这杯太激进。你是在测试我，还是测试系统？"'
-      },
-      {
         id: 'corp-default',
         when: () => true,
         effect: { logic: 1 },
         setFlags: { corpTrust: false },
-        reply: '雾音记下了配方，但只给出模糊承诺。'
+        reply: '雾音收下配方，但仍保持公关口径。'
       }
     ]
   },
   s02: {
-    title: '节点：企业会谈后的第一份情报',
+    title: '企业窗口',
     speaker: 'liaison',
     expression: 'neutral',
     bg: 'corp',
     text: (st) => st.flags.corpTrust
-      ? '你刚递出的饮品让雾音放下戒备。她把“回声井”调度日志的一段校验码推到你终端。'
-      : '雾音保持公关口径，只给你公开版本资料。你知道还有更深层的密钥没被交出。',
+      ? '雾音把“回声井”调度日志的一段校验码推到你终端。'
+      : '雾音只给公开版本资料，更深层密钥仍在她手里。',
     choices: [
-      { text: '继续追问数据边界，要求可审计条款。', effect: { logic: 1, oppose: 1 }, next: 's03' },
-      { text: '先收下现有线索，准备和下一位来客交叉验证。', effect: { coop: 1, preserve: 1 }, next: 's03' }
+      { text: '签一份对赌式披露草案。', effect: { logic: 1 }, setFlags: ['corpDeal'], addItem: ['corpMemo'], rel: { name: 'liaison', value: 1 }, next: 's03' },
+      { text: '拒绝企业交易，保持中立。', effect: { oppose: 1 }, clearFlags: ['corpDeal'], rel: { name: 'liaison', value: -1 }, next: 's03' }
     ]
   },
   s03: {
@@ -63,7 +56,7 @@ export const scenes = {
     speaker: 'hacker',
     expression: 'angry',
     bg: 'alley',
-    request: '烬线把湿掉的芯片袋拍在吧台："给我一杯能让我盯完三百页日志的，别端企业味。"',
+    request: '烬线把湿掉的芯片袋拍在吧台："给我一杯能盯完三百页日志的，别端企业味。"',
     note: '点单目标：偏探索/对抗会激发黑客的真实情报。',
     npcKey: 'hacker',
     next: 's04',
@@ -73,33 +66,28 @@ export const scenes = {
         when: ({ tags, profile }) => (tags.includes('rebel') || tags.includes('explore') || tags.includes('risk')) && profile.bitter >= 3,
         effect: { oppose: 1, explore: 2 },
         setFlags: { hackerTrust: true },
-        reply: '烬线一口闷下半杯："这才像今晚。好，我把原始链路也给你。"'
-      },
-      {
-        id: 'hack-safe',
-        when: ({ tags }) => tags.includes('safe') || tags.includes('cooperate'),
-        effect: { coop: 1, preserve: 1 },
-        setFlags: { hackerTrust: false },
-        reply: '烬线挑眉："你在劝我收手？行，我先给你删减版。"'
+        reply: '烬线一口闷下半杯："行，我把原始链路也给你。"'
       },
       {
         id: 'hack-default',
         when: () => true,
         effect: { explore: 1 },
         setFlags: { hackerTrust: false },
-        reply: '烬线把杯垫翻过来，在背面写了个临时节点地址。'
+        reply: '烬线只留了一个临时节点地址。'
       }
     ]
   },
   s04: {
-    title: '中段：后厨拼图',
-    speaker: 'zero',
+    title: '暗网提案',
+    speaker: 'hacker',
     expression: 'neutral',
-    bg: 'backroom',
-    text: (st) => `你把企业和黑客线索并到离线终端，同一代号“回声井”浮现。\n\n${st.flags.hackerTrust ? '由于烬线给了你完整链路，时间线拼得更快。' : '链路存在断点，你得花更多时间补全证据。'}`,
+    bg: 'alley',
+    text: (st) => st.flags.hackerTrust
+      ? '烬线推来一卷加密磁带："里面有离线备份，你敢不敢带走？"'
+      : '烬线盯着你："你先证明不是企业代言人。"',
     choices: [
-      { text: '把证据拆成三份，通知三方对质。', effect: { coop: 1, logic: 1 }, next: 's05' },
-      { text: '仅保留一份主密钥，由你单线推进。', effect: { oppose: 1, explore: 1 }, next: 's05' }
+      { text: '收下记忆磁带并承诺公开真相。', if: { flagsAll: ['hackerTrust'] }, addItem: ['memoryTape'], setFlags: ['memoryTape', 'truthLeakDraft'], rel: { name: 'hacker', value: 2 }, effect: { explore: 1 }, next: 's05' },
+      { text: '要求分段验证后再谈公开。', addItem: ['checksumSheet'], effect: { logic: 1, preserve: 1 }, rel: { name: 'hacker', value: -1 }, next: 's05' }
     ]
   },
   s05: {
@@ -118,37 +106,28 @@ export const scenes = {
         when: ({ profile, tags }) => profile.alcohol <= 1 && profile.stim >= 2 && (tags.includes('safe') || tags.includes('focus')),
         effect: { coop: 2, preserve: 1 },
         setFlags: { detectiveTrust: true },
-        reply: '韩铬点头："你考虑了执行风险。那我给你开临时通行。"'
-      },
-      {
-        id: 'cop-hard',
-        when: ({ profile }) => profile.alcohol >= 3,
-        effect: { oppose: 1, emotion: 1 },
-        setFlags: { detectiveTrust: false },
-        reply: '韩铬把杯子推回一寸："这不该出现在执勤前。"'
+        reply: '韩铬点头："我给你开临时通行。"'
       },
       {
         id: 'cop-default',
         when: () => true,
         effect: { logic: 1 },
         setFlags: { detectiveTrust: false },
-        reply: '韩铬记住了你的态度，但仍按章办事。'
+        reply: '韩铬记住你的态度，但仍按章办事。'
       }
     ]
   },
   s06: {
-    title: '中段回扣：三方反应',
+    title: '执法窗口',
     speaker: 'detective',
     expression: 'smile',
     bg: 'street',
-    text: (st) => {
-      if (st.flags.detectiveTrust && st.flags.corpTrust) return '雾音与韩铬都同意先保住医疗电网，再推进公开审计。停火窗口第一次成形。';
-      if (st.flags.hackerTrust && !st.flags.detectiveTrust) return '烬线催你立刻公开，韩铬却提高了封锁等级。你站在冲突正中央。';
-      return '三方都在观望，你必须用下一轮选择证明自己。';
-    },
+    text: (st) => st.flags.detectiveTrust
+      ? '韩铬压低声音："你若配合，我可以先压住搜查令。"'
+      : '韩铬公事公办："缺少证据链的话，我会申请搜查令。"',
     choices: [
-      { text: '主张渐进公开，优先保证基础设施。', effect: { logic: 1, coop: 1 }, next: 's07' },
-      { text: '主张一次性公开，强迫系统回应。', effect: { oppose: 1, explore: 1 }, next: 's07' }
+      { text: '交出部分证据，换取执法缓冲。', if: { itemAny: ['checksumSheet', 'corpMemo'] }, clearFlags: ['policeWarrant'], rel: { name: 'detective', value: 1 }, effect: { coop: 1 }, next: 's07' },
+      { text: '拒绝移交数据，准备硬扛搜查。', setFlags: ['policeWarrant'], rel: { name: 'detective', value: -2 }, effect: { oppose: 1 }, next: 's07' }
     ]
   },
   s07: {
@@ -156,12 +135,36 @@ export const scenes = {
     speaker: 'zero',
     expression: 'angry',
     bg: 'bar',
-    text: (st) => `你回看整夜点单与选择。当前倾向：\n- Rational↔Emotional：${st.score.rational}\n- Cooperate↔Confront：${st.score.cooperate}\n- Explore↔Conserve：${st.score.explore}\n\n三位来客留下的杯垫排成一行，像是终章前的投票。`,
+    text: (st) => `你回看整夜档案：\n- Rational↔Emotional：${st.score.rational}\n- Cooperate↔Confront：${st.score.cooperate}\n- Explore↔Conserve：${st.score.explore}\n\n线索是否完整，将决定终章落点。`,
     choices: [
-      { text: '确认路线锁定，进入终章。', effect: { logic: 1 }, routeLock: true, next: 's10A' }
+      { text: '补全泄露稿，准备城市级公开。', if: { flagsAll: ['truthLeakDraft'], itemAny: ['memoryTape'] }, effect: { explore: 1, oppose: 1 }, setFlags: ['truthLeakDraft'], routeLock: true, next: 's10B' },
+      { text: '走审计停火线，优先保住电网。', if: { flagsAll: ['corpDeal'], flagsAny: ['barShielded'], relAtLeast: { name: 'liaison', val: 1 } }, effect: { logic: 1, coop: 1 }, routeLock: true, next: 's10A' },
+      { text: '将三方证词写入匿名网络。', if: { itemAny: ['memoryTape', 'checksumSheet'], relAtLeast: { name: 'hacker', val: 1 } }, effect: { logic: 1, explore: 1 }, routeLock: true, next: 's10C' },
+      { text: '在混乱中硬选一条路。', effect: { emotion: 1 }, routeLock: true, next: 's10A' }
     ]
   },
-  s10A: { title:'终章A线：玻璃停火协议', speaker:'liaison', expression:'neutral', bg:'corp', text:'你以“低风险先行 + 公开审计”达成停火。酒吧的点单日志成为三方共同承认的时间轴。', choices:[{text:'执行停火流程。',effect:{coop:1,preserve:1},next:'END'}]},
-  s10B: { title:'终章B线：霓虹燃烧广播', speaker:'hacker', expression:'angry', bg:'street', text:'你把整夜饮品订单与证据打包广播，城市在真相与混乱里同时苏醒。', choices:[{text:'点燃全城广播。',effect:{oppose:1,explore:1},next:'END'}]},
-  s10C: { title:'终章C线：磁带群星网络', speaker:'zero', expression:'smile', bg:'bar', text:'你把酒吧点单系统改造成匿名记忆网络，任何人都能写入可验证证词。', choices:[{text:'启动群星节点。',effect:{logic:1,explore:1},next:'END'}]}
+  s10A: {
+    title: '终章A线：玻璃停火协议',
+    speaker: 'liaison',
+    expression: 'neutral',
+    bg: 'corp',
+    text: (st) => `你以“低风险先行 + 公开审计”达成停火。${st.flags.policeWarrant ? '但警方搜查令仍悬而未决，协议执行十分脆弱。' : '搜查令被撤回，三方首次签下可追责条款。'}`,
+    choices: [{ text: '执行停火流程。', effect: { coop: 1, preserve: 1 }, next: 'END' }]
+  },
+  s10B: {
+    title: '终章B线：霓虹燃烧广播',
+    speaker: 'hacker',
+    expression: 'angry',
+    bg: 'street',
+    text: (st) => `你把整夜证据打包广播。${st.flags.truthLeakDraft && st.inventory.includes('memoryTape') ? '完整记忆磁带让公众看见不可抵赖的原始链路。' : '证据仍有断层，城市在半真相里爆燃。'}`,
+    choices: [{ text: '点燃全城广播。', effect: { oppose: 1, explore: 1 }, next: 'END' }]
+  },
+  s10C: {
+    title: '终章C线：磁带群星网络',
+    speaker: 'zero',
+    expression: 'smile',
+    bg: 'bar',
+    text: (st) => `你把酒吧点单系统改造成匿名记忆网络。${st.flags.barShielded ? '早先部署的屏障让节点成功熬过第一轮清洗。' : '由于缺少屏障，首批节点损失惨重但火种仍在。'}`,
+    choices: [{ text: '启动群星节点。', effect: { logic: 1, explore: 1 }, next: 'END' }]
+  }
 };

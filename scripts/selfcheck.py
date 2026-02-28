@@ -14,6 +14,7 @@ DATA_JS = ROOT / "js" / "data.js"
 STORY_JS = ROOT / "data" / "story.js"
 DRINKS_JS = ROOT / "data" / "drinks.js"
 DRINK_PANEL_JS = ROOT / "js" / "drink.js"
+STATE_JS = ROOT / "js" / "state.js"
 
 
 def fail(message: str) -> None:
@@ -26,7 +27,7 @@ def ok(message: str) -> None:
 
 
 def main() -> None:
-    for path in [INDEX, MAIN_JS, DATA_JS, STORY_JS, DRINKS_JS, DRINK_PANEL_JS]:
+    for path in [INDEX, MAIN_JS, DATA_JS, STORY_JS, DRINKS_JS, DRINK_PANEL_JS, STATE_JS]:
         if not path.exists():
             fail(f"missing required file: {path.relative_to(ROOT)}")
 
@@ -36,8 +37,9 @@ def main() -> None:
     story_js = STORY_JS.read_text(encoding="utf-8")
     drinks_js = DRINKS_JS.read_text(encoding="utf-8")
     drink_panel_js = DRINK_PANEL_JS.read_text(encoding="utf-8")
+    state_js = STATE_JS.read_text(encoding="utf-8")
 
-    merged = "\n".join([html, main_js, data_js, story_js, drinks_js, drink_panel_js])
+    merged = "\n".join([html, main_js, data_js, story_js, drinks_js, drink_panel_js, state_js])
 
     required_strings = [
         "NEON TAPE_017",
@@ -54,7 +56,14 @@ def main() -> None:
         "saveTransferText",
         "drink-panel",
         "orderHistory",
-        "orderDrafts"
+        "orderDrafts",
+        "线索板 / 档案",
+        "archivePanelBtn",
+        "setFlags",
+        "clearFlags",
+        "addItem",
+        "removeItem",
+        "relAtLeast"
     ]
     for token in required_strings:
         if token not in merged:
@@ -85,6 +94,17 @@ def main() -> None:
         fail("drink panel hooks missing")
     ok("drink panel hooks present")
 
+    important_flags = ["corpDeal", "hackerTrust", "policeWarrant", "memoryTape", "barShielded", "truthLeakDraft"]
+    for flag in important_flags:
+        if flag not in story_js:
+            fail(f"missing important flag: {flag}")
+    ok("important story flags present")
+
+    conditional_branches = story_js.count("if: {")
+    if conditional_branches < 3:
+        fail(f"conditional branches too low: {conditional_branches} (expected >= 3)")
+    ok(f"conditional branches >= 3 ({conditional_branches})")
+
     for token in ["PORTRAIT_SIZE", "PORTRAIT_PALETTE", "portraits:", "neutral:", "smile:", "angry:"]:
         if token not in data_js:
             fail(f"missing portrait token: {token}")
@@ -94,7 +114,7 @@ def main() -> None:
         fail("manual save slots < 3")
     ok("manual save slots >= 3")
 
-    for token in ["sceneId", "tendency", "log", "bgmEnabled", "bgmVolume", "orderHistory", "orderDrafts"]:
+    for token in ["sceneId", "tendency", "tendencies", "flags", "inventory", "relations", "log", "bgmEnabled", "bgmVolume", "orderHistory", "orderDrafts"]:
         if token not in main_js:
             fail(f"missing save payload key indicator: {token}")
     ok("save payload includes required keys")

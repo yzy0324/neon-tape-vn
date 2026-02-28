@@ -2,26 +2,15 @@ import { PORTRAIT_SIZE, cast } from './data.js';
 import { scenes } from '../data/story.js';
 import { BgmSynth } from './audio.js';
 import { renderDrinkPanel } from './drink.js';
+import { IMPORTANT_FLAG_META, applyStateDelta, createInitialState, hasCondition, normalizeState } from './state.js';
 
 const SAVE_PREFIX = 'neonTape_';
-const SAVE_SCHEMA_VERSION = 3;
+const SAVE_SCHEMA_VERSION = 4;
 const AUTO_SLOT = 'auto';
 const TITLE_SCENE = '__TITLE__';
 const ROUTE_SCENE_MAP = { A: 's10A', B: 's10B', C: 's10C' };
 
-const state = {
-  current: TITLE_SCENE,
-  tendency: { rational: 0, cooperate: 0, explore: 0 },
-  flags: {},
-  log: [],
-  routeLock: null,
-  choiceHistory: [],
-  orderHistory: [],
-  orderDrafts: {},
-  unlockedEndings: [],
-  bgmEnabled: false,
-  bgmVolume: 0.5
-};
+const state = createInitialState();
 
 const bgStyles = {
   bar: 'radial-gradient(circle at 20% 20%, rgba(255,130,170,.25), transparent 45%), linear-gradient(135deg, rgba(68,31,110,.25), rgba(11,6,30,.65))',
@@ -52,18 +41,20 @@ const saveStatusEl = document.getElementById('saveStatus');
 const saveTextEl = document.getElementById('saveTransferText');
 const volumeSlider = document.getElementById('bgmVolume');
 const volumeLabel = document.getElementById('bgmVolumeLabel');
+const archivePanelEl = document.getElementById('archivePanel');
+const archiveBodyEl = document.getElementById('archiveBody');
 const synth = new BgmSynth();
 
 const clamp = (val, min, max) => Math.min(max, Math.max(min, val));
 
 function tendencyPairs() {
   return {
-    rational: state.tendency.rational,
-    emotional: -state.tendency.rational,
-    cooperate: state.tendency.cooperate,
-    confront: -state.tendency.cooperate,
-    explore: state.tendency.explore,
-    conserve: -state.tendency.explore
+    rational: state.tendencies.rational,
+    emotional: -state.tendencies.rational,
+    cooperate: state.tendencies.cooperate,
+    confront: -state.tendencies.cooperate,
+    explore: state.tendencies.explore,
+    conserve: -state.tendencies.explore
   };
 }
 
@@ -83,7 +74,7 @@ function toPercent(v) {
 
 function routeDistance(routeKey) {
   const target = ROUTES[routeKey].target;
-  const cur = state.tendency;
+  const cur = state.tendencies;
   return Math.abs(cur.rational - target.rational) + Math.abs(cur.cooperate - target.cooperate) + Math.abs(cur.explore - target.explore);
 }
 
@@ -92,10 +83,20 @@ function nearestRoute() {
 }
 
 function renderBars() {
-  document.getElementById('barLogic').style.width = toPercent(state.tendency.rational);
-  document.getElementById('barCoop').style.width = toPercent(state.tendency.cooperate);
-  document.getElementById('barExplore').style.width = toPercent(state.tendency.explore);
+  document.getElementById('barLogic').style.width = toPercent(state.tendencies.rational);
+  document.getElementById('barCoop').style.width = toPercent(state.tendencies.cooperate);
+  document.getElementById('barExplore').style.width = toPercent(state.tendencies.explore);
   routeHintEl.textContent = state.routeLock ? `路线已锁定：${ROUTES[state.routeLock].name}。` : `路线趋近提示：${ROUTES[nearestRoute()].hint}`;
+}
+
+function renderArchive() {
+  const clues = state.inventory.length ? state.inventory.map((item) => `<li>${item}</li>`).join('') : '<li>暂无线索物品</li>';
+  const relRows = Object.entries(state.relations).map(([name, value]) => `<div class="archive-rel"><span>${cast[name]?.name || name}</span><div class="bar"><span style="width:${toPercent(clamp(value, -5, 5))}"></span></div><em>${value}</em></div>`).join('');
+  const flagRows = Object.keys(IMPORTANT_FLAG_META)
+    .filter((flag) => state.flags[flag])
+    .map((flag) => `<li>${IMPORTANT_FLAG_META[flag]}</li>`)
+    .join('') || '<li>暂无已解锁关键状态</li>';
+  archiveBodyEl.innerHTML = `<div class="tiny">线索 / 物品</div><ul>${clues}</ul><div class="tiny">关键人物关系</div>${relRows}<div class="tiny">已解锁关键状态</div><ul>${flagRows}</ul>`;
 }
 
 function updateBgmUI() {
@@ -106,12 +107,12 @@ function updateBgmUI() {
 
 function applyEffect(effect = {}) {
   Object.entries(effect).forEach(([k, v]) => {
-    if (k === 'logic') state.tendency.rational = clamp(state.tendency.rational + v, -5, 5);
-    if (k === 'emotion') state.tendency.rational = clamp(state.tendency.rational - v, -5, 5);
-    if (k === 'coop') state.tendency.cooperate = clamp(state.tendency.cooperate + v, -5, 5);
-    if (k === 'oppose') state.tendency.cooperate = clamp(state.tendency.cooperate - v, -5, 5);
-    if (k === 'explore') state.tendency.explore = clamp(state.tendency.explore + v, -5, 5);
-    if (k === 'preserve') state.tendency.explore = clamp(state.tendency.explore - v, -5, 5);
+    if (k === 'logic') state.tendencies.rational = clamp(state.tendencies.rational + v, -5, 5);
+    if (k === 'emotion') state.tendencies.rational = clamp(state.tendencies.rational - v, -5, 5);
+    if (k === 'coop') state.tendencies.cooperate = clamp(state.tendencies.cooperate + v, -5, 5);
+    if (k === 'oppose') state.tendencies.cooperate = clamp(state.tendencies.cooperate - v, -5, 5);
+    if (k === 'explore') state.tendencies.explore = clamp(state.tendencies.explore + v, -5, 5);
+    if (k === 'preserve') state.tendencies.explore = clamp(state.tendencies.explore - v, -5, 5);
   });
 }
 
@@ -139,8 +140,11 @@ function makeSavePayload() {
   return {
     schemaVersion: SAVE_SCHEMA_VERSION,
     sceneId: state.current,
-    tendency: state.tendency,
+    tendency: state.tendencies,
+    tendencies: state.tendencies,
     flags: state.flags,
+    inventory: state.inventory,
+    relations: state.relations,
     log: state.log,
     unlockedEndings: state.unlockedEndings,
     bgmEnabled: state.bgmEnabled,
@@ -153,52 +157,31 @@ function makeSavePayload() {
   };
 }
 
-function normalizeLegacyScore(score = {}) {
-  return {
-    rational: clamp((score.logic || 0) - (score.emotion || 0), -5, 5),
-    cooperate: clamp((score.coop || 0) - (score.oppose || 0), -5, 5),
-    explore: clamp((score.explore || 0) - (score.preserve || 0), -5, 5)
-  };
-}
-
 function parseSaveData(rawData) {
   const data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
-  const normalized = {
-    schemaVersion: Number.isInteger(data.schemaVersion) ? data.schemaVersion : 1,
-    sceneId: typeof data.sceneId === 'string' ? data.sceneId : (data.current || 's00'),
-    tendency: data.tendency || normalizeLegacyScore(data.score),
-    flags: data.flags && typeof data.flags === 'object' ? data.flags : {},
-    log: Array.isArray(data.log) ? data.log : [],
+  const normalized = normalizeState({
+    current: typeof data.sceneId === 'string' ? data.sceneId : data.current,
+    tendencies: data.tendencies || data.tendency,
+    flags: data.flags,
+    inventory: data.inventory,
+    relations: data.relations,
+    log: data.log,
     unlockedEndings: Array.isArray(data.unlockedEndings) ? data.unlockedEndings.filter((r) => ROUTES[r]) : [],
     bgmEnabled: typeof data.bgmEnabled === 'boolean' ? data.bgmEnabled : !!data.bgmOn,
     bgmVolume: clamp(typeof data.bgmVolume === 'number' ? data.bgmVolume : 0.5, 0, 1),
     routeLock: data.routeLock && ROUTES[data.routeLock] ? data.routeLock : null,
-    choiceHistory: Array.isArray(data.choiceHistory) ? data.choiceHistory : [],
-    orderHistory: Array.isArray(data.orderHistory) ? data.orderHistory : [],
-    orderDrafts: data.orderDrafts && typeof data.orderDrafts === 'object' ? data.orderDrafts : {}
-  };
-  normalized.tendency = {
-    rational: clamp(Number(normalized.tendency.rational) || 0, -5, 5),
-    cooperate: clamp(Number(normalized.tendency.cooperate) || 0, -5, 5),
-    explore: clamp(Number(normalized.tendency.explore) || 0, -5, 5)
-  };
-  return normalized;
+    choiceHistory: data.choiceHistory,
+    orderHistory: data.orderHistory,
+    orderDrafts: data.orderDrafts
+  });
+  return { ...normalized, schemaVersion: Number.isInteger(data.schemaVersion) ? data.schemaVersion : 1 };
 }
 
 function applySaveData(data) {
-  state.current = data.sceneId;
-  state.tendency = data.tendency;
-  state.flags = data.flags;
-  state.log = data.log;
-  state.unlockedEndings = data.unlockedEndings;
-  state.bgmEnabled = data.bgmEnabled;
-  state.bgmVolume = data.bgmVolume;
-  state.routeLock = data.routeLock;
-  state.choiceHistory = data.choiceHistory;
-  state.orderHistory = data.orderHistory;
-  state.orderDrafts = data.orderDrafts;
+  Object.assign(state, normalizeState(data));
   synth.setVolume(state.bgmVolume);
   updateBgmUI();
+  renderArchive();
 }
 
 function save(slot) { localStorage.setItem(`${SAVE_PREFIX}${slot}`, JSON.stringify(makeSavePayload())); }
@@ -219,6 +202,7 @@ function showTitle() {
   charInfoEl.textContent = `${cast.zero.name}｜${cast.zero.desc}`;
   renderBars();
   renderLog();
+  renderArchive();
 }
 
 function showEnding(route) {
@@ -239,6 +223,7 @@ function showEnding(route) {
   titleBtn.onclick = showTitle;
   choiceEl.appendChild(titleBtn);
   renderLog();
+  renderArchive();
   autoSave(true);
 }
 
@@ -258,30 +243,31 @@ function renderOrderScene(scene) {
   const draft = state.orderDrafts[state.current] || { drinkId: 'sunless-zero', extraIds: [] };
   renderDrinkPanel(choiceEl, scene, draft, (nextDraft) => {
     state.orderDrafts[state.current] = nextDraft;
-    autoSave(false);
   }, (payload) => {
     resolveOrderEffect(scene, payload);
-    state.orderHistory.push({ npc: scene.npcKey || scene.speaker, drink: payload.drink.name, extras: payload.extras.map((item) => item.name) });
-    state.choiceHistory.push({ scene: scene.title, choice: `给 ${cast[scene.speaker].name}：${payload.drink.name}` });
-    addLog(`🍸 给了${cast[scene.speaker].name}：${payload.drink.name}${payload.extras.length ? ` + ${payload.extras.map((item) => item.name).join(' / ')}` : ''}`);
+    const orderLine = `${cast[scene.npcKey]?.name || scene.npcKey} ← ${payload.drink.name}${payload.extras.length ? ` + ${payload.extras.map((item) => item.name).join(' / ')}` : ''}`;
+    state.orderHistory.push(orderLine);
+    addLog(`[点单] ${orderLine}`);
     state.current = scene.next;
     renderScene();
   });
 }
 
-function renderChoiceScene(scene, text) {
+function renderChoiceScene(scene) {
   choiceEl.innerHTML = '';
   scene.choices.forEach((ch) => {
     if (ch.condition && !ch.condition({ ...state, score: tendencyPairs() })) return;
+    if (ch.if && !hasCondition(state, ch.if)) return;
     const btn = document.createElement('button');
     btn.textContent = ch.text;
     btn.onclick = () => {
       applyEffect(ch.effect);
+      applyStateDelta(state, ch);
       state.choiceHistory.push({ scene: scene.title, choice: ch.text });
       addLog(`▶ ${ch.text}`);
       if (ch.routeLock) {
         lockRoute();
-        state.current = ROUTE_SCENE_MAP[state.routeLock];
+        state.current = ch.next || ROUTE_SCENE_MAP[state.routeLock];
       } else {
         state.current = ch.next;
       }
@@ -307,6 +293,7 @@ function renderScene() {
   addLog(`[${scene.title}]\n${storyEl.textContent}`);
   renderLog();
   renderBars();
+  renderArchive();
 
   if (scene.type === 'order') {
     renderOrderScene(scene);
@@ -331,14 +318,9 @@ function load(slot) {
 }
 
 function resetGame() {
+  Object.assign(state, createInitialState());
   state.current = 's00';
-  state.tendency = { rational: 0, cooperate: 0, explore: 0 };
-  state.flags = {};
   state.log = ['[系统] 新的一卷磁带开始转动。'];
-  state.routeLock = null;
-  state.choiceHistory = [];
-  state.orderHistory = [];
-  state.orderDrafts = {};
   renderScene();
 }
 
@@ -373,6 +355,8 @@ function importSave(slot) {
 document.getElementById('resetBtn').onclick = resetGame;
 document.getElementById('savePanelBtn').onclick = () => savePanelEl.classList.toggle('open');
 document.getElementById('savePanelClose').onclick = () => savePanelEl.classList.toggle('open');
+document.getElementById('archivePanelBtn').onclick = () => archivePanelEl.classList.toggle('open');
+document.getElementById('archivePanelClose').onclick = () => archivePanelEl.classList.remove('open');
 volumeSlider.oninput = () => {
   state.bgmVolume = clamp(Number(volumeSlider.value) / 100, 0, 1);
   synth.setVolume(state.bgmVolume);
@@ -398,6 +382,7 @@ document.querySelectorAll('[data-export]').forEach((btn) => { btn.onclick = () =
 document.querySelectorAll('[data-import]').forEach((btn) => { btn.onclick = () => importSave(btn.dataset.import); });
 
 updateBgmUI();
+renderArchive();
 const autoRaw = localStorage.getItem(`${SAVE_PREFIX}${AUTO_SLOT}`);
 if (autoRaw) {
   try {
