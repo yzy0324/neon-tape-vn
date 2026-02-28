@@ -18,7 +18,7 @@
     .left{padding:12px;display:flex;flex-direction:column;gap:10px}
     .cassette{border:1px solid rgba(255,215,173,.3);border-radius:10px;padding:10px;background:linear-gradient(135deg,rgba(255,152,134,.18),rgba(72,29,103,.55))}
     .cassette h2{margin:0;font-size:16px;letter-spacing:1px;color:#ffd787}.tiny{font-size:12px;opacity:.9}
-    .portrait{width:100%;border:1px solid rgba(255,142,191,.35);border-radius:10px;image-rendering:pixelated;background:rgba(8,5,22,.8);aspect-ratio:1/1;object-fit:cover}
+    .portrait-wrap{position:relative;border:1px solid rgba(255,142,191,.35);border-radius:10px;background:rgba(8,5,22,.8);display:grid;place-items:center;min-height:156px;overflow:hidden}.portrait-wrap::before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,rgba(255,255,255,.08),rgba(255,255,255,.08) 1px,transparent 1px,transparent 4px);mix-blend-mode:screen;opacity:.18;animation:portraitScan 2.2s steps(6,end) infinite}.portrait{width:96px;height:144px;max-width:100%;max-height:calc(100vw - 48px);border-radius:6px;image-rendering:pixelated;object-fit:contain;transition:opacity .14s ease;opacity:1}.portrait-switching{opacity:.82}
     .stats{display:grid;gap:8px;font-size:13px}.bar{height:8px;border-radius:4px;background:rgba(255,255,255,.15);overflow:hidden;margin-top:3px}.bar>span{display:block;height:100%;width:50%;background:linear-gradient(to right,var(--neon-cyan),#ffe37f);box-shadow:0 0 10px rgba(47,243,224,.7);transition:width .25s ease}
     .log{border:1px solid rgba(255,190,140,.35);border-radius:8px;padding:8px;background:rgba(10,5,28,.72);height:180px;overflow:auto;font-size:12px;line-height:1.55}
     .controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto}
@@ -41,8 +41,8 @@
     .scene-head{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-size:14px}
     .story{flex:1;padding:18px;overflow:auto;line-height:1.7;font-size:16px;text-shadow:0 0 6px rgba(255,116,179,.2);white-space:pre-line}
     .choices{padding:12px;border-top:1px solid var(--line);display:grid;gap:8px;background:rgba(10,5,28,.78)}
-    .bg-layer{position:absolute;inset:0;pointer-events:none;opacity:.2;background-size:cover;transition:opacity .3s}
-    @media (max-width:860px){.app{grid-template-columns:1fr;height:auto;margin-bottom:2vh}.left{order:2}.right{min-height:70vh}}
+    .bg-layer{position:absolute;inset:0;pointer-events:none;opacity:.2;background-size:cover;transition:opacity .3s}@keyframes portraitScan{0%{transform:translateY(-2px);opacity:.16}50%{transform:translateY(2px);opacity:.24}100%{transform:translateY(-2px);opacity:.16}}
+    @media (max-width:860px){.app{grid-template-columns:1fr;height:auto;margin-bottom:2vh}.left{order:2}.right{min-height:70vh}.portrait-wrap{min-height:150px}.portrait{max-height:55vw}}
   </style>
 </head>
 <body>
@@ -50,7 +50,7 @@
   <main class="app">
     <aside class="left">
       <div class="cassette"><h2>NEON TAPE_017</h2><div class="tiny">身份：夜航调酒师 / 情报中继员「零磁」</div></div>
-      <img id="portrait" class="portrait" alt="角色像素立绘" />
+      <div class="portrait-wrap"><img id="portrait" class="portrait" alt="角色像素立绘" /></div>
       <div id="charInfo" class="tiny"></div>
       <div id="routeHint" class="tiny">路线趋近提示：尚未开始。</div>
       <div class="stats">

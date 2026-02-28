@@ -66,6 +66,20 @@ def main() -> None:
         fail(f"route specific final scenes too low: {route_finals} (expected >= 3)")
     ok(f"route specific final scenes >= 3 ({route_finals})")
 
+    for token in ["PORTRAIT_SIZE", "PORTRAIT_PALETTE", "portraits:", "neutral:", "smile:", "angry:"]:
+        if token not in data_js:
+            fail(f"missing portrait token: {token}")
+    ok("pixel portrait palette and expression variants present")
+
+    if "portrait-wrap" not in html or "@keyframes portraitScan" not in html or "portrait-switching" not in html:
+        fail("portrait scanline/flicker styles missing")
+    ok("portrait scanline flicker styles present")
+
+    expression_count = len(re.findall(r"expression:'(neutral|smile|angry)'", data_js))
+    if expression_count < 10:
+        fail(f"scene portrait expressions too low: {expression_count}")
+    ok(f"scene portrait expressions configured ({expression_count})")
+
     keys = sorted(set(re.findall(r"neonTape_[a-zA-Z0-9_]*", merged)))
     if not keys or 'neonTape_' not in keys:
         fail("no save key markers found")

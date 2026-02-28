@@ -1,62 +1,112 @@
-export function mkPortrait(grid) {
-  const palette = {
-    '0': '#140a24', '1': '#ffd8c1', '2': '#f7b08f', '3': '#56f0ff', '4': '#ff5aaa',
-    '5': '#bc71ff', '6': '#3a205f', '7': '#131326', '8': '#ffed77', '9': '#9ee7ff', 'a': '#ff9b4a'
-  };
-  const size = 16;
+export const PORTRAIT_SIZE = Object.freeze({ width: 96, height: 144, pixel: 4 });
+export const PORTRAIT_PALETTE = Object.freeze({
+  dark: '#12071f',
+  dark2: '#21103a',
+  skin: '#f5b58f',
+  skinShadow: '#d98d77',
+  neonPurple: '#b56cff',
+  neonCyan: '#49f7ff',
+  neonPink: '#ff4db6',
+  visor: '#9af5ff',
+  eye: '#160c29',
+  metal: '#5f6796',
+  glow: '#fdf16e'
+});
+
+function mkPortraitSprite(config) {
+  const w = 24;
+  const h = 36;
   let rects = '';
-  grid.forEach((row, y) => row.forEach((c, x) => { if (c !== '0') rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${palette[c]}" />`; }));
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${size} ${size}' shape-rendering='crispEdges'>${rects}</svg>`;
+  const px = (x, y, color) => {
+    rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${color}"/>`;
+  };
+  const box = (x, y, rw, rh, color) => {
+    for (let yy = 0; yy < rh; yy += 1) {
+      for (let xx = 0; xx < rw; xx += 1) px(x + xx, y + yy, color);
+    }
+  };
+
+  box(0, 0, w, h, PORTRAIT_PALETTE.dark);
+  box(2, 3, 20, 30, PORTRAIT_PALETTE.dark2);
+  box(6, 6, 12, 7, config.hair);
+  box(8, 13, 8, 8, PORTRAIT_PALETTE.skin);
+  box(8, 19, 8, 2, PORTRAIT_PALETTE.skinShadow);
+  box(8, 14, 2, 2, config.eyeGlow);
+  box(14, 14, 2, 2, config.eyeGlow);
+  box(10, 14, 4, 2, config.visor ? PORTRAIT_PALETTE.visor : PORTRAIT_PALETTE.eye);
+  box(10, 18, 4, 1, config.mouth);
+  box(7, 21, 10, 2, config.neckwear);
+  box(5, 23, 14, 9, config.coat);
+  box(6, 26, 12, 1, config.accent);
+  box(6, 29, 12, 1, config.accentAlt || config.accent);
+  box(4, 24, 1, 7, PORTRAIT_PALETTE.metal);
+  box(19, 24, 1, 7, PORTRAIT_PALETTE.metal);
+  box(10, 23, 4, 2, PORTRAIT_PALETTE.glow);
+
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${w} ${h}' width='${PORTRAIT_SIZE.width}' height='${PORTRAIT_SIZE.height}' shape-rendering='crispEdges'>${rects}</svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
-const zeroGrid = [
-['0','0','0','0','3','3','3','3','3','3','0','0','0','0','0','0'],['0','0','0','3','5','5','6','6','6','5','5','3','0','0','0','0'],['0','0','3','5','6','2','2','2','2','2','6','5','3','0','0','0'],['0','3','5','6','2','2','2','2','2','2','2','6','5','3','0','0'],['0','3','5','6','1','1','2','2','2','1','1','6','5','3','0','0'],['0','3','5','6','1','7','2','2','2','7','1','6','5','3','0','0'],['0','3','5','6','1','1','2','2','2','1','1','6','5','3','0','0'],['0','0','3','5','6','2','8','8','8','2','6','5','3','0','0','0'],['0','0','0','3','5','6','6','6','6','6','5','3','0','0','0','0'],['0','0','0','0','3','5','5','5','5','5','3','0','0','0','0','0'],['0','0','0','0','3','9','9','9','9','9','3','0','0','0','0','0'],['0','0','0','3','9','9','9','9','9','9','9','3','0','0','0','0'],['0','0','3','9','9','9','3','0','0','3','9','9','3','0','0','0'],['0','3','9','9','9','3','0','0','0','0','3','9','9','9','3','0'],['0','3','9','9','3','0','0','0','0','0','0','3','9','9','3','0'],['0','0','3','3','0','0','0','0','0','0','0','0','3','3','0','0']
-];
-const liaisonGrid = [
-['0','0','0','0','4','4','4','4','4','4','0','0','0','0','0','0'],['0','0','0','4','5','5','5','6','6','5','5','4','0','0','0','0'],['0','0','4','5','6','6','2','2','2','2','6','5','4','0','0','0'],['0','4','5','6','2','2','2','2','2','2','2','6','5','4','0','0'],['0','4','5','6','2','1','1','2','2','1','1','6','5','4','0','0'],['0','4','5','6','2','1','7','2','2','7','1','6','5','4','0','0'],['0','4','5','6','2','1','1','2','2','1','1','6','5','4','0','0'],['0','0','4','5','6','2','8','8','8','2','6','5','4','0','0','0'],['0','0','0','4','5','6','6','6','6','6','5','4','0','0','0','0'],['0','0','0','0','4','4','5','5','5','4','4','0','0','0','0','0'],['0','0','0','0','3','3','3','3','3','3','3','0','0','0','0','0'],['0','0','0','3','9','9','9','9','9','9','9','3','0','0','0','0'],['0','0','3','9','9','9','3','0','0','3','9','9','3','0','0','0'],['0','3','9','9','9','3','0','0','0','0','3','9','9','9','3','0'],['0','3','9','9','3','0','0','0','0','0','0','3','9','9','3','0'],['0','0','3','3','0','0','0','0','0','0','0','0','3','3','0','0']
-];
-const hackerGrid = zeroGrid;
-const detectiveGrid = [
-['0','0','0','0','3','3','3','3','3','3','0','0','0','0','0','0'],['0','0','0','3','6','6','5','5','5','6','6','3','0','0','0','0'],['0','0','3','6','2','2','2','2','2','2','2','6','3','0','0','0'],['0','3','6','2','2','2','2','2','2','2','2','2','6','3','0','0'],['0','3','6','2','1','1','2','2','2','1','1','2','6','3','0','0'],['0','3','6','2','1','7','2','2','2','7','1','2','6','3','0','0'],['0','3','6','2','1','1','2','2','2','1','1','2','6','3','0','0'],['0','0','3','6','2','2','8','8','8','2','2','6','3','0','0','0'],['0','0','0','3','6','2','2','2','2','2','6','3','0','0','0','0'],['0','0','0','0','3','6','6','6','6','6','3','0','0','0','0','0'],['0','0','0','0','a','a','a','a','a','a','a','0','0','0','0','0'],['0','0','0','a','a','a','a','a','a','a','a','a','0','0','0','0'],['0','0','a','a','a','a','3','0','0','3','a','a','a','0','0','0'],['0','a','a','a','a','3','0','0','0','0','3','a','a','a','a','0'],['0','a','a','a','3','0','0','0','0','0','0','3','a','a','a','0'],['0','0','a','a','0','0','0','0','0','0','0','0','a','a','0','0']
-];
+function mkExpressions(base) {
+  return {
+    neutral: mkPortraitSprite({ ...base, mouth: PORTRAIT_PALETTE.eye }),
+    smile: mkPortraitSprite({ ...base, mouth: PORTRAIT_PALETTE.neonCyan, accentAlt: PORTRAIT_PALETTE.neonPink }),
+    angry: mkPortraitSprite({ ...base, mouth: PORTRAIT_PALETTE.neonPink, eyeGlow: PORTRAIT_PALETTE.neonPink })
+  };
+}
 
 export const cast = {
-  zero: { name: '零磁（你）', desc: '夜班调酒师，中立情报站维护员。', img: mkPortrait(zeroGrid) },
-  liaison: { name: '绫濑雾音｜企业联络官', desc: '云穹生物的对外联络官，强调“合作才有明天”。', img: mkPortrait(liaisonGrid) },
-  hacker: { name: '烬线｜街头黑客', desc: '从排风管和旧网格里捞真相的人。', img: mkPortrait(hackerGrid) },
-  detective: { name: '韩铬｜义体警探', desc: '城市执法组的义体侦缉官，偏好可执行方案。', img: mkPortrait(detectiveGrid) }
+  zero: {
+    name: '零磁（你）',
+    desc: '夜班调酒师，中立情报站维护员。',
+    portraits: mkExpressions({ hair: PORTRAIT_PALETTE.neonPurple, coat: '#2d1a4f', accent: PORTRAIT_PALETTE.neonCyan, neckwear: PORTRAIT_PALETTE.neonPink, eyeGlow: PORTRAIT_PALETTE.neonCyan, visor: false })
+  },
+  liaison: {
+    name: '绫濑雾音｜企业联络官',
+    desc: '云穹生物的对外联络官，强调“合作才有明天”。',
+    portraits: mkExpressions({ hair: PORTRAIT_PALETTE.neonPink, coat: '#301242', accent: PORTRAIT_PALETTE.neonPurple, neckwear: PORTRAIT_PALETTE.neonCyan, eyeGlow: PORTRAIT_PALETTE.neonCyan, visor: true })
+  },
+  hacker: {
+    name: '烬线｜街头黑客',
+    desc: '从排风管和旧网格里捞真相的人。',
+    portraits: mkExpressions({ hair: PORTRAIT_PALETTE.neonCyan, coat: '#18234a', accent: PORTRAIT_PALETTE.neonPink, neckwear: PORTRAIT_PALETTE.neonPurple, eyeGlow: PORTRAIT_PALETTE.neonPurple, visor: false })
+  },
+  detective: {
+    name: '韩铬｜义体警探',
+    desc: '城市执法组的义体侦缉官，偏好可执行方案。',
+    portraits: mkExpressions({ hair: '#7381bf', coat: '#2a3154', accent: PORTRAIT_PALETTE.neonCyan, neckwear: PORTRAIT_PALETTE.neonPurple, eyeGlow: PORTRAIT_PALETTE.neonPink, visor: true })
+  }
 };
 
 export const scenes = {
-  s00: { title:'开场：太阳雨夜班', speaker:'zero', bg:'bar', text:()=>'22:11，酸雨沿着酒吧霓虹玻璃流成一条条发光裂缝。匿名点单连续跳了三次：同一串前缀来自企业网、街区暗网、执法内网。\n\n你把这串前缀写进手账，标注“首个伏笔：订单索引”。一名从不说话的快递员在门口停了两秒，像是确认你还在值班。',
+  s00: { title:'开场：太阳雨夜班', speaker:'zero', expression:'neutral', bg:'bar', text:()=>'22:11，酸雨沿着酒吧霓虹玻璃流成一条条发光裂缝。匿名点单连续跳了三次：同一串前缀来自企业网、街区暗网、执法内网。\n\n你把这串前缀写进手账，标注“首个伏笔：订单索引”。一名从不说话的快递员在门口停了两秒，像是确认你还在值班。',
     choices:[{text:'先把后厨监控和通风管线全开，按流程准备。',effect:{logic:1,preserve:1},next:'s01'},{text:'调高音乐和霓虹，先稳住气氛再见客。',effect:{emotion:1,coop:1},next:'s01'}]},
-  s01: { title:'节点一：企业联络官的点单', speaker:'liaison', bg:'corp', text:()=>'绫濑雾音坐到吧台尽头，点“无糖极昼”。“今夜的数据塔会泄漏，”她说，“你若先给我可疑流量，我给你豁免窗口。”\n\n她把条款讲得像投资报告，每句都在算成本。',
+  s01: { title:'节点一：企业联络官的点单', speaker:'liaison', expression:'smile', bg:'corp', text:()=>'绫濑雾音坐到吧台尽头，点“无糖极昼”。“今夜的数据塔会泄漏，”她说，“你若先给我可疑流量，我给你豁免窗口。”\n\n她把条款讲得像投资报告，每句都在算成本。',
     choices:[{text:'追问公开边界并要求可审计条款。',effect:{logic:1,oppose:1},next:'s02'},{text:'先接受企业防护承诺，换取临时安全。',effect:{coop:1,preserve:1},next:'s02'}]},
-  s02: { title:'节点二：街头黑客的交易', speaker:'hacker', bg:'alley', text:()=>'烬线从后门出现，把“死者订阅记录”扔上吧台。她警告你：回声井计划正在给整城人群打标签。\n\n她塞来一张纸条：“订单 #A-17，常温水，不要删。”',
+  s02: { title:'节点二：街头黑客的交易', speaker:'hacker', expression:'angry', bg:'alley', text:()=>'烬线从后门出现，把“死者订阅记录”扔上吧台。她警告你：回声井计划正在给整城人群打标签。\n\n她塞来一张纸条：“订单 #A-17，常温水，不要删。”',
     choices:[{text:'要求原始哈希和链路证据，先验真。',effect:{logic:1,explore:1},next:'s03'},{text:'先听受害者语音，优先保全当事人。',effect:{emotion:1,oppose:1},next:'s03'}]},
-  s03: { title:'节点三：义体警探的底线', speaker:'detective', bg:'street', text:()=>'韩铬点了常温水，递来临时执法令：你可申请封锁频道，也可拒绝。\n\n“若电网被推下去，先死的是重症病房。”他盯着你，“你要哪种后果？”',
+  s03: { title:'节点三：义体警探的底线', speaker:'detective', expression:'neutral', bg:'street', text:()=>'韩铬点了常温水，递来临时执法令：你可申请封锁频道，也可拒绝。\n\n“若电网被推下去，先死的是重症病房。”他盯着你，“你要哪种后果？”',
     choices:[{text:'申请最小封锁，先保住生命线。',effect:{preserve:1,coop:1},next:'s04'},{text:'拒绝预封锁，保留公开流动。',effect:{explore:1,oppose:1},next:'s04'}]},
-  s04: { title:'中段：后厨拼图', speaker:'zero', bg:'backroom', text:(st)=>`你把三方数据并到离线终端，同一代号“回声井”浮现。酒吧原来一直是城市神经末梢。\n\n${st.score.rational >= 0 ? '你先拉出时间线做交叉验证。' : '你先抄下每个名字，怕数字吃掉人的痛感。'}`,
+  s04: { title:'中段：后厨拼图', speaker:'zero', expression:'neutral', bg:'backroom', text:(st)=>`你把三方数据并到离线终端，同一代号“回声井”浮现。酒吧原来一直是城市神经末梢。\n\n${st.score.rational >= 0 ? '你先拉出时间线做交叉验证。' : '你先抄下每个名字，怕数字吃掉人的痛感。'}`,
     choices:[{text:'把证据拆成三份，通知三方对质。',effect:{coop:1,logic:1},next:'s05'},{text:'仅保留一份主密钥，由你单线推进。',effect:{oppose:1,explore:1},next:'s05'}]},
-  s05: { title:'中段回扣①：理性 / 感性', speaker:'hacker', bg:'bar', text:(st)=> st.score.rational >= 0
+  s05: { title:'中段回扣①：理性 / 感性', speaker:'hacker', expression:'smile', bg:'bar', text:(st)=> st.score.rational >= 0
     ? '烬线盯着流程图点头：“好，没人能说你伪造。”门外家属却在催，怕“再等等”就是永远。'
     : '你播放受害者语音。烬线沉默很久：“这比图表更重。”她也提醒你，法务会反咬“煽动”。',
     choices:[{text:'补齐另一侧短板：技术与人证都要。',effect:{logic:1,emotion:1},next:'s06'},{text:'坚持当前路径，争取更快推进。',effect:{preserve:1},next:'s06'}]},
-  s06: { title:'中段回扣②：合作 / 对抗', speaker:'liaison', bg:'corp', text:(st)=> st.score.cooperate >= 0
+  s06: { title:'中段回扣②：合作 / 对抗', speaker:'liaison', expression:'angry', bg:'corp', text:(st)=> st.score.cooperate >= 0
     ? '雾音带来法律见证人，愿把部分权限交第三方托管。她说这是你前面“愿意谈”的回报。'
     : '雾音身后跟着安保无人机：“你若继续公开，我们按最高级泄密处置。”强压正式开始。',
     choices:[{text:'提出停火条件：公开审计+街区席位。',effect:{coop:1,logic:1},next:'s07'},{text:'当场反制：把会谈同步地下电台。',effect:{oppose:1,emotion:1},next:'s07'}]},
-  s07: { title:'中后段：巡逻线外', speaker:'detective', bg:'street', text:(st)=> st.score.explore >= 0
+  s07: { title:'中后段：巡逻线外', speaker:'detective', expression:'smile', bg:'street', text:(st)=> st.score.explore >= 0
     ? '韩铬带你到高架桥下废弃节点，找到早期实验备份；真相更全，但安全窗口也在缩短。'
     : '韩铬先护送你回安全区，沿途切断高风险线路；证据更稳，却丢了部分追踪线。',
     choices:[{text:'继续深挖备份源头，哪怕延后公开。',effect:{explore:1,logic:1},next:'s08'},{text:'先整理现有证据并发布风险提示。',effect:{preserve:1,coop:1},next:'s08'}]},
-  s08: { title:'终段前夜：点单高峰', speaker:'zero', bg:'bar', text:()=>'01:40，酒吧像作战室。每杯饮料都夹带一句请求：有人要稳定，有人要爆破，有人只想活到天亮。\n\n门口那名沉默快递员又出现，把未签收包裹放到你脚边就消失。',
+  s08: { title:'终段前夜：点单高峰', speaker:'zero', expression:'angry', bg:'bar', text:()=>'01:40，酒吧像作战室。每杯饮料都夹带一句请求：有人要稳定，有人要爆破，有人只想活到天亮。\n\n门口那名沉默快递员又出现，把未签收包裹放到你脚边就消失。',
     choices:[{text:'把完整密钥交三方联合看管。',effect:{coop:1,preserve:1},next:'s09'},{text:'将密钥拆散并广播给民间节点。',effect:{oppose:1,explore:1},next:'s09'}]},
-  s09: { title:'路线锁定：终章前校准', speaker:'zero', bg:'dawn', text:(st)=>`你回看整夜计分标尺（-5..+5）：\n- Rational↔Emotional：${st.score.rational}\n- Cooperate↔Confront：${st.score.cooperate}\n- Explore↔Conserve：${st.score.explore}\n\n磁带机开始倒数，系统将基于三维倾向锁定终章路线。`,
+  s09: { title:'路线锁定：终章前校准', speaker:'zero', expression:'smile', bg:'dawn', text:(st)=>`你回看整夜计分标尺（-5..+5）：\n- Rational↔Emotional：${st.score.rational}\n- Cooperate↔Confront：${st.score.cooperate}\n- Explore↔Conserve：${st.score.explore}\n\n磁带机开始倒数，系统将基于三维倾向锁定终章路线。`,
     choices:[{text:'确认路线锁定，进入终章。',effect:{logic:1},routeLock:true,next:'s10A'}]},
 
-  s10A: { title:'终章A线：玻璃停火协议', speaker:'liaison', bg:'corp', text:'雾音、韩铬、烬线三方同屏。你要求所有密钥操作必须“公开审计 + 三方共签 + 医疗优先”。谈判室像一块透明玻璃，谁都看见彼此颤抖。', choices:[{text:'执行停火流程。',effect:{coop:1,preserve:1},next:'END'}]},
-  s10B: { title:'终章B线：霓虹燃烧广播', speaker:'hacker', bg:'street', text:'烬线将塔台频段让给你。你把证据镜像压缩进城市广告网，韩铬在外围挡住第一波封锁，雾音则试图以最后通牒拦下你。', choices:[{text:'点燃全城广播。',effect:{oppose:1,explore:1},next:'END'}]},
-  s10C: { title:'终章C线：磁带群星网络', speaker:'zero', bg:'bar', text:'你把酒吧每张桌子变成匿名写入终端：一份证据，一段语音，一个校验签名。三方都拿不到中心开关，只能共同维护流动记忆。', choices:[{text:'启动群星节点。',effect:{logic:1,explore:1},next:'END'}]}
+  s10A: { title:'终章A线：玻璃停火协议', speaker:'liaison', expression:'neutral', bg:'corp', text:'雾音、韩铬、烬线三方同屏。你要求所有密钥操作必须“公开审计 + 三方共签 + 医疗优先”。谈判室像一块透明玻璃，谁都看见彼此颤抖。', choices:[{text:'执行停火流程。',effect:{coop:1,preserve:1},next:'END'}]},
+  s10B: { title:'终章B线：霓虹燃烧广播', speaker:'hacker', expression:'angry', bg:'street', text:'烬线将塔台频段让给你。你把证据镜像压缩进城市广告网，韩铬在外围挡住第一波封锁，雾音则试图以最后通牒拦下你。', choices:[{text:'点燃全城广播。',effect:{oppose:1,explore:1},next:'END'}]},
+  s10C: { title:'终章C线：磁带群星网络', speaker:'zero', expression:'smile', bg:'bar', text:'你把酒吧每张桌子变成匿名写入终端：一份证据，一段语音，一个校验签名。三方都拿不到中心开关，只能共同维护流动记忆。', choices:[{text:'启动群星节点。',effect:{logic:1,explore:1},next:'END'}]}
 };
