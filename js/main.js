@@ -1,4 +1,4 @@
-import { cast, scenes } from './data.js';
+import { PORTRAIT_SIZE, cast, scenes } from './data.js';
 import { BgmSynth } from './audio.js';
 
 const SAVE_PREFIX = 'neonTape_';
@@ -64,6 +64,26 @@ const saveTextEl = document.getElementById('saveTransferText');
 const volumeSlider = document.getElementById('bgmVolume');
 const volumeLabel = document.getElementById('bgmVolumeLabel');
 const synth = new BgmSynth();
+
+function getPortraitFor(character, expression = 'neutral') {
+  return character?.portraits?.[expression] || character?.portraits?.neutral || '';
+}
+
+function setPortrait(character, expression = 'neutral') {
+  const nextSrc = getPortraitFor(character, expression);
+  if (!nextSrc) return;
+  portraitEl.style.width = `${PORTRAIT_SIZE.width}px`;
+  portraitEl.style.height = `${PORTRAIT_SIZE.height}px`;
+  if (portraitEl.dataset.srcCache === nextSrc) return;
+  portraitEl.classList.add('portrait-switching');
+  const preloader = new Image();
+  preloader.src = nextSrc;
+  preloader.onload = () => {
+    portraitEl.src = nextSrc;
+    portraitEl.dataset.srcCache = nextSrc;
+    requestAnimationFrame(() => portraitEl.classList.remove('portrait-switching'));
+  };
+}
 
 function clamp(val, min, max) {
   return Math.min(max, Math.max(min, val));
@@ -239,7 +259,7 @@ function showTitle() {
   choiceEl.appendChild(startBtn);
   bgLayerEl.style.background = bgStyles.bar;
   const c = cast.zero;
-  portraitEl.src = c.img;
+  setPortrait(c, 'neutral');
   charInfoEl.textContent = `${c.name}｜${c.desc}`;
   renderBars();
   renderLog();
@@ -298,7 +318,7 @@ function renderScene() {
   bgLayerEl.style.background = bgStyles[scene.bg] || bgStyles.bar;
 
   const c = cast[scene.speaker];
-  portraitEl.src = c.img;
+  setPortrait(c, scene.expression || 'neutral');
   charInfoEl.textContent = `${c.name}｜${c.desc}`;
 
   addLog(`[${scene.title}]\n${text}`);
