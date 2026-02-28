@@ -77,36 +77,3 @@ export const cast = {
     portraits: mkExpressions({ hair: '#7381bf', coat: '#2a3154', accent: PORTRAIT_PALETTE.neonCyan, neckwear: PORTRAIT_PALETTE.neonPurple, eyeGlow: PORTRAIT_PALETTE.neonPink, visor: true })
   }
 };
-
-export const scenes = {
-  s00: { title:'开场：太阳雨夜班', speaker:'zero', expression:'neutral', bg:'bar', text:()=>'22:11，酸雨沿着酒吧霓虹玻璃流成一条条发光裂缝。匿名点单连续跳了三次：同一串前缀来自企业网、街区暗网、执法内网。\n\n你把这串前缀写进手账，标注“首个伏笔：订单索引”。一名从不说话的快递员在门口停了两秒，像是确认你还在值班。',
-    choices:[{text:'先把后厨监控和通风管线全开，按流程准备。',effect:{logic:1,preserve:1},next:'s01'},{text:'调高音乐和霓虹，先稳住气氛再见客。',effect:{emotion:1,coop:1},next:'s01'}]},
-  s01: { title:'节点一：企业联络官的点单', speaker:'liaison', expression:'smile', bg:'corp', text:()=>'绫濑雾音坐到吧台尽头，点“无糖极昼”。“今夜的数据塔会泄漏，”她说，“你若先给我可疑流量，我给你豁免窗口。”\n\n她把条款讲得像投资报告，每句都在算成本。',
-    choices:[{text:'追问公开边界并要求可审计条款。',effect:{logic:1,oppose:1},next:'s02'},{text:'先接受企业防护承诺，换取临时安全。',effect:{coop:1,preserve:1},next:'s02'}]},
-  s02: { title:'节点二：街头黑客的交易', speaker:'hacker', expression:'angry', bg:'alley', text:()=>'烬线从后门出现，把“死者订阅记录”扔上吧台。她警告你：回声井计划正在给整城人群打标签。\n\n她塞来一张纸条：“订单 #A-17，常温水，不要删。”',
-    choices:[{text:'要求原始哈希和链路证据，先验真。',effect:{logic:1,explore:1},next:'s03'},{text:'先听受害者语音，优先保全当事人。',effect:{emotion:1,oppose:1},next:'s03'}]},
-  s03: { title:'节点三：义体警探的底线', speaker:'detective', expression:'neutral', bg:'street', text:()=>'韩铬点了常温水，递来临时执法令：你可申请封锁频道，也可拒绝。\n\n“若电网被推下去，先死的是重症病房。”他盯着你，“你要哪种后果？”',
-    choices:[{text:'申请最小封锁，先保住生命线。',effect:{preserve:1,coop:1},next:'s04'},{text:'拒绝预封锁，保留公开流动。',effect:{explore:1,oppose:1},next:'s04'}]},
-  s04: { title:'中段：后厨拼图', speaker:'zero', expression:'neutral', bg:'backroom', text:(st)=>`你把三方数据并到离线终端，同一代号“回声井”浮现。酒吧原来一直是城市神经末梢。\n\n${st.score.rational >= 0 ? '你先拉出时间线做交叉验证。' : '你先抄下每个名字，怕数字吃掉人的痛感。'}`,
-    choices:[{text:'把证据拆成三份，通知三方对质。',effect:{coop:1,logic:1},next:'s05'},{text:'仅保留一份主密钥，由你单线推进。',effect:{oppose:1,explore:1},next:'s05'}]},
-  s05: { title:'中段回扣①：理性 / 感性', speaker:'hacker', expression:'smile', bg:'bar', text:(st)=> st.score.rational >= 0
-    ? '烬线盯着流程图点头：“好，没人能说你伪造。”门外家属却在催，怕“再等等”就是永远。'
-    : '你播放受害者语音。烬线沉默很久：“这比图表更重。”她也提醒你，法务会反咬“煽动”。',
-    choices:[{text:'补齐另一侧短板：技术与人证都要。',effect:{logic:1,emotion:1},next:'s06'},{text:'坚持当前路径，争取更快推进。',effect:{preserve:1},next:'s06'}]},
-  s06: { title:'中段回扣②：合作 / 对抗', speaker:'liaison', expression:'angry', bg:'corp', text:(st)=> st.score.cooperate >= 0
-    ? '雾音带来法律见证人，愿把部分权限交第三方托管。她说这是你前面“愿意谈”的回报。'
-    : '雾音身后跟着安保无人机：“你若继续公开，我们按最高级泄密处置。”强压正式开始。',
-    choices:[{text:'提出停火条件：公开审计+街区席位。',effect:{coop:1,logic:1},next:'s07'},{text:'当场反制：把会谈同步地下电台。',effect:{oppose:1,emotion:1},next:'s07'}]},
-  s07: { title:'中后段：巡逻线外', speaker:'detective', expression:'smile', bg:'street', text:(st)=> st.score.explore >= 0
-    ? '韩铬带你到高架桥下废弃节点，找到早期实验备份；真相更全，但安全窗口也在缩短。'
-    : '韩铬先护送你回安全区，沿途切断高风险线路；证据更稳，却丢了部分追踪线。',
-    choices:[{text:'继续深挖备份源头，哪怕延后公开。',effect:{explore:1,logic:1},next:'s08'},{text:'先整理现有证据并发布风险提示。',effect:{preserve:1,coop:1},next:'s08'}]},
-  s08: { title:'终段前夜：点单高峰', speaker:'zero', expression:'angry', bg:'bar', text:()=>'01:40，酒吧像作战室。每杯饮料都夹带一句请求：有人要稳定，有人要爆破，有人只想活到天亮。\n\n门口那名沉默快递员又出现，把未签收包裹放到你脚边就消失。',
-    choices:[{text:'把完整密钥交三方联合看管。',effect:{coop:1,preserve:1},next:'s09'},{text:'将密钥拆散并广播给民间节点。',effect:{oppose:1,explore:1},next:'s09'}]},
-  s09: { title:'路线锁定：终章前校准', speaker:'zero', expression:'smile', bg:'dawn', text:(st)=>`你回看整夜计分标尺（-5..+5）：\n- Rational↔Emotional：${st.score.rational}\n- Cooperate↔Confront：${st.score.cooperate}\n- Explore↔Conserve：${st.score.explore}\n\n磁带机开始倒数，系统将基于三维倾向锁定终章路线。`,
-    choices:[{text:'确认路线锁定，进入终章。',effect:{logic:1},routeLock:true,next:'s10A'}]},
-
-  s10A: { title:'终章A线：玻璃停火协议', speaker:'liaison', expression:'neutral', bg:'corp', text:'雾音、韩铬、烬线三方同屏。你要求所有密钥操作必须“公开审计 + 三方共签 + 医疗优先”。谈判室像一块透明玻璃，谁都看见彼此颤抖。', choices:[{text:'执行停火流程。',effect:{coop:1,preserve:1},next:'END'}]},
-  s10B: { title:'终章B线：霓虹燃烧广播', speaker:'hacker', expression:'angry', bg:'street', text:'烬线将塔台频段让给你。你把证据镜像压缩进城市广告网，韩铬在外围挡住第一波封锁，雾音则试图以最后通牒拦下你。', choices:[{text:'点燃全城广播。',effect:{oppose:1,explore:1},next:'END'}]},
-  s10C: { title:'终章C线：磁带群星网络', speaker:'zero', expression:'smile', bg:'bar', text:'你把酒吧每张桌子变成匿名写入终端：一份证据，一段语音，一个校验签名。三方都拿不到中心开关，只能共同维护流动记忆。', choices:[{text:'启动群星节点。',effect:{logic:1,explore:1},next:'END'}]}
-};

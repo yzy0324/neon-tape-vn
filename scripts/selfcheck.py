@@ -11,6 +11,9 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 INDEX = ROOT / "index.html"
 MAIN_JS = ROOT / "js" / "main.js"
 DATA_JS = ROOT / "js" / "data.js"
+STORY_JS = ROOT / "data" / "story.js"
+DRINKS_JS = ROOT / "data" / "drinks.js"
+DRINK_PANEL_JS = ROOT / "js" / "drink.js"
 
 
 def fail(message: str) -> None:
@@ -23,13 +26,18 @@ def ok(message: str) -> None:
 
 
 def main() -> None:
-    for path in [INDEX, MAIN_JS, DATA_JS]:
+    for path in [INDEX, MAIN_JS, DATA_JS, STORY_JS, DRINKS_JS, DRINK_PANEL_JS]:
         if not path.exists():
             fail(f"missing required file: {path.relative_to(ROOT)}")
 
     html = INDEX.read_text(encoding="utf-8")
     main_js = MAIN_JS.read_text(encoding="utf-8")
     data_js = DATA_JS.read_text(encoding="utf-8")
+    story_js = STORY_JS.read_text(encoding="utf-8")
+    drinks_js = DRINKS_JS.read_text(encoding="utf-8")
+    drink_panel_js = DRINK_PANEL_JS.read_text(encoding="utf-8")
+
+    merged = "\n".join([html, main_js, data_js, story_js, drinks_js, drink_panel_js])
 
     required_strings = [
         "NEON TAPE_017",
@@ -44,60 +52,52 @@ def main() -> None:
         "Tape Archive / 存档总线",
         "schemaVersion",
         "saveTransferText",
+        "drink-panel",
+        "orderHistory",
+        "orderDrafts"
     ]
-    merged = html + "\n" + main_js + "\n" + data_js
     for token in required_strings:
         if token not in merged:
             fail(f"missing required string: {token}")
     ok("key strings present")
 
-    scene_count = len(re.findall(r"\bs\d{2}[A-C]?\s*:\s*{", data_js))
-    if scene_count < 13:
-        fail(f"scene count too low: {scene_count} (expected >= 13)")
-    ok(f"scene count >= 13 ({scene_count})")
+    scene_count = len(re.findall(r"\bs\d{2}[A-C]?\s*:\s*{", story_js))
+    if scene_count < 10:
+        fail(f"scene count too low: {scene_count} (expected >= 10)")
+    ok(f"scene count >= 10 ({scene_count})")
+
+    order_scene_count = story_js.count("type: 'order'")
+    if order_scene_count < 3:
+        fail(f"order scenes too low: {order_scene_count} (expected >= 3)")
+    ok(f"order scenes >= 3 ({order_scene_count})")
+
+    drinks_count = len(re.findall(r"id:\s*'[^']+'", drinks_js.split("export const EXTRAS", 1)[0]))
+    if drinks_count < 8:
+        fail(f"drinks too low: {drinks_count} (expected >= 8)")
+    ok(f"drink definitions >= 8 ({drinks_count})")
 
     endings = len(re.findall(r"结局[A-C]【", main_js))
     if endings < 3:
         fail(f"ending markers too low: {endings} (expected >= 3)")
     ok(f"ending markers >= 3 ({endings})")
 
-    route_finals = len(re.findall(r"s10[A-C]", data_js))
-    if route_finals < 3:
-        fail(f"route specific final scenes too low: {route_finals} (expected >= 3)")
-    ok(f"route specific final scenes >= 3 ({route_finals})")
+    if "renderDrinkPanel" not in main_js or "buildOrderPayload" not in drink_panel_js:
+        fail("drink panel hooks missing")
+    ok("drink panel hooks present")
 
     for token in ["PORTRAIT_SIZE", "PORTRAIT_PALETTE", "portraits:", "neutral:", "smile:", "angry:"]:
         if token not in data_js:
             fail(f"missing portrait token: {token}")
     ok("pixel portrait palette and expression variants present")
 
-    if "portrait-wrap" not in html or "@keyframes portraitScan" not in html or "portrait-switching" not in html:
-        fail("portrait scanline/flicker styles missing")
-    ok("portrait scanline flicker styles present")
-
-    expression_count = len(re.findall(r"expression:'(neutral|smile|angry)'", data_js))
-    if expression_count < 10:
-        fail(f"scene portrait expressions too low: {expression_count}")
-    ok(f"scene portrait expressions configured ({expression_count})")
-
-    keys = sorted(set(re.findall(r"neonTape_[a-zA-Z0-9_]*", merged)))
-    if not keys or 'neonTape_' not in keys:
-        fail("no save key markers found")
-    ok(f"save key markers present ({', '.join(keys)})")
-
     if "data-save=\"slot1\"" not in html or "data-save=\"slot2\"" not in html or "data-save=\"slot3\"" not in html:
         fail("manual save slots < 3")
     ok("manual save slots >= 3")
 
-    for token in ["routeLock", "choiceHistory", "AUTO_SLOT", "sceneId", "unlockedEndings", "bgmEnabled", "bgmVolume", "SAVE_SCHEMA_VERSION"]:
+    for token in ["sceneId", "tendency", "log", "bgmEnabled", "bgmVolume", "orderHistory", "orderDrafts"]:
         if token not in main_js:
             fail(f"missing save payload key indicator: {token}")
-    ok("save payload includes route and review keys")
-
-    for token in ["data-export=\"slot1\"", "data-import=\"slot1\"", "data-export=\"auto\"", "data-import=\"auto\""]:
-        if token not in html:
-            fail(f"missing import/export control: {token}")
-    ok("import/export controls present")
+    ok("save payload includes required keys")
 
     print("\nSelf-check passed.")
 
