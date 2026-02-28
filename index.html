@@ -6,532 +6,60 @@
   <title>霓虹磁带：夜航调酒录</title>
   <style>
     :root {
-      --bg-1: #13051f;
-      --bg-2: #1f0d3b;
-      --sunset: #ff8a5b;
-      --sunset-2: #ff4f8b;
-      --neon-cyan: #2ff3e0;
-      --neon-purple: #8e58ff;
-      --text: #ffd8e8;
-      --panel: rgba(18, 9, 40, 0.88);
-      --line: rgba(255, 132, 214, 0.42);
+      --bg-1:#13051f;--bg-2:#1f0d3b;--sunset:#ff8a5b;--sunset-2:#ff4f8b;--neon-cyan:#2ff3e0;--text:#ffd8e8;--panel:rgba(18,9,40,.9);--line:rgba(255,132,214,.42);
     }
-
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: "Microsoft YaHei", "Noto Sans SC", sans-serif;
-      color: var(--text);
-      background: radial-gradient(circle at 50% 15%, #47256e 0%, var(--bg-2) 35%, var(--bg-1) 70%);
-      overflow: hidden;
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      background:
-        repeating-linear-gradient(
-          to bottom,
-          rgba(255, 255, 255, 0.04),
-          rgba(255, 255, 255, 0.04) 1px,
-          transparent 2px,
-          transparent 4px
-        );
-      mix-blend-mode: screen;
-      opacity: 0.28;
-    }
-
-    .sun {
-      position: fixed;
-      top: 5vh;
-      left: 50%;
-      transform: translateX(-50%);
-      width: min(64vw, 520px);
-      height: min(64vw, 520px);
-      border-radius: 50%;
-      background: linear-gradient(to bottom, #ffd26f 5%, var(--sunset) 35%, var(--sunset-2) 75%);
-      box-shadow: 0 0 46px rgba(255, 123, 176, 0.42);
-      overflow: hidden;
-      opacity: 0.42;
-    }
-
-    .sun::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: repeating-linear-gradient(to bottom, transparent 0, transparent 20px, rgba(31, 13, 59, 0.76) 20px, rgba(31, 13, 59, 0.76) 26px);
-    }
-
-    .grid {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 45vh;
-      background:
-        linear-gradient(to top, rgba(255, 80, 160, 0.08), transparent 65%),
-        repeating-linear-gradient(to right, rgba(47, 243, 224, 0.2), rgba(47, 243, 224, 0.2) 1px, transparent 1px, transparent 50px),
-        repeating-linear-gradient(to top, rgba(47, 243, 224, 0.2), rgba(47, 243, 224, 0.2) 1px, transparent 1px, transparent 50px);
-      transform: perspective(220px) rotateX(58deg);
-      transform-origin: bottom;
-      opacity: 0.42;
-    }
-
-    .app {
-      position: relative;
-      z-index: 2;
-      width: min(1000px, 96vw);
-      margin: 2vh auto;
-      display: grid;
-      grid-template-columns: 300px 1fr;
-      gap: 16px;
-      height: 94vh;
-    }
-
-    .left, .right {
-      border: 1px solid var(--line);
-      background: var(--panel);
-      box-shadow: 0 0 18px rgba(142, 88, 255, 0.36), inset 0 0 20px rgba(255, 82, 160, 0.16);
-      border-radius: 12px;
-      backdrop-filter: blur(4px);
-    }
-
-    .left {
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .cassette {
-      border: 1px solid rgba(255, 215, 173, 0.3);
-      border-radius: 10px;
-      padding: 10px;
-      background: linear-gradient(135deg, rgba(255, 152, 134, 0.18), rgba(72, 29, 103, 0.55));
-    }
-
-    .cassette h2 {
-      margin: 0;
-      font-size: 16px;
-      letter-spacing: 1px;
-      color: #ffd787;
-    }
-
-    .stats {
-      display: grid;
-      gap: 8px;
-      font-size: 13px;
-    }
-
-    .bar {
-      height: 8px;
-      border-radius: 4px;
-      background: rgba(255, 255, 255, 0.15);
-      overflow: hidden;
-      margin-top: 3px;
-    }
-
-    .bar > span {
-      display: block;
-      height: 100%;
-      width: 50%;
-      background: linear-gradient(to right, var(--neon-cyan), #ffe37f);
-      box-shadow: 0 0 10px rgba(47, 243, 224, 0.7);
-      transition: width 0.35s ease;
-    }
-
-    .portrait {
-      width: 100%;
-      border: 1px solid rgba(255, 142, 191, 0.35);
-      border-radius: 10px;
-      image-rendering: pixelated;
-      background: rgba(8, 5, 22, 0.8);
-      aspect-ratio: 1/1;
-      object-fit: cover;
-    }
-
-    .tiny {
-      font-size: 12px;
-      color: #ffe5f0;
-      opacity: 0.88;
-    }
-
-    .controls {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-top: auto;
-    }
-
-    button {
-      border: 1px solid rgba(255, 205, 141, 0.5);
-      border-radius: 8px;
-      padding: 8px;
-      background: linear-gradient(120deg, rgba(255, 138, 91, 0.2), rgba(142, 88, 255, 0.3));
-      color: #fff3dd;
-      cursor: pointer;
-      transition: all .2s;
-      font-size: 13px;
-    }
-
-    button:hover { transform: translateY(-1px); box-shadow: 0 0 10px rgba(255, 150, 190, 0.5); }
-
-    .right {
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .scene-head {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--line);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 14px;
-    }
-
-    .story {
-      flex: 1;
-      padding: 18px;
-      overflow: auto;
-      line-height: 1.7;
-      font-size: 16px;
-      text-shadow: 0 0 6px rgba(255, 116, 179, 0.25);
-      white-space: pre-line;
-    }
-
-    .choices {
-      padding: 12px;
-      border-top: 1px solid var(--line);
-      display: grid;
-      gap: 8px;
-      background: rgba(10, 5, 28, 0.78);
-    }
-
-    .choices button { text-align: left; }
-
-    .ending-title {
-      color: #ffe38b;
-      font-size: 24px;
-      margin-bottom: 12px;
-      text-shadow: 0 0 14px rgba(255, 201, 114, 0.5);
-    }
-
-    @media (max-width: 860px) {
-      .app { grid-template-columns: 1fr; height: auto; margin-bottom: 2vh; }
-      .left { order: 2; }
-      .right { min-height: 70vh; }
-    }
+    *{box-sizing:border-box} body{margin:0;min-height:100vh;font-family:"Microsoft YaHei","Noto Sans SC",sans-serif;color:var(--text);background:radial-gradient(circle at 50% 15%,#47256e 0%,var(--bg-2) 35%,var(--bg-1) 70%);overflow:hidden}
+    body::before{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,rgba(255,255,255,.04),rgba(255,255,255,.04) 1px,transparent 2px,transparent 4px);mix-blend-mode:screen;opacity:.28}
+    .sun{position:fixed;top:5vh;left:50%;transform:translateX(-50%);width:min(64vw,520px);height:min(64vw,520px);border-radius:50%;background:linear-gradient(to bottom,#ffd26f 5%,var(--sunset) 35%,var(--sunset-2) 75%);box-shadow:0 0 46px rgba(255,123,176,.42);overflow:hidden;opacity:.42}
+    .sun::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(to bottom,transparent 0,transparent 20px,rgba(31,13,59,.76) 20px,rgba(31,13,59,.76) 26px)}
+    .grid{position:fixed;left:0;right:0;bottom:0;height:45vh;background:linear-gradient(to top,rgba(255,80,160,.08),transparent 65%),repeating-linear-gradient(to right,rgba(47,243,224,.2),rgba(47,243,224,.2) 1px,transparent 1px,transparent 50px),repeating-linear-gradient(to top,rgba(47,243,224,.2),rgba(47,243,224,.2) 1px,transparent 1px,transparent 50px);transform:perspective(220px) rotateX(58deg);transform-origin:bottom;opacity:.42}
+    .app{position:relative;z-index:2;width:min(1080px,96vw);margin:2vh auto;display:grid;grid-template-columns:320px 1fr;gap:16px;height:94vh}
+    .left,.right{border:1px solid var(--line);background:var(--panel);box-shadow:0 0 18px rgba(142,88,255,.36),inset 0 0 20px rgba(255,82,160,.16);border-radius:12px;backdrop-filter:blur(4px)}
+    .left{padding:12px;display:flex;flex-direction:column;gap:10px}
+    .cassette{border:1px solid rgba(255,215,173,.3);border-radius:10px;padding:10px;background:linear-gradient(135deg,rgba(255,152,134,.18),rgba(72,29,103,.55))}
+    .cassette h2{margin:0;font-size:16px;letter-spacing:1px;color:#ffd787}.tiny{font-size:12px;opacity:.9}
+    .portrait{width:100%;border:1px solid rgba(255,142,191,.35);border-radius:10px;image-rendering:pixelated;background:rgba(8,5,22,.8);aspect-ratio:1/1;object-fit:cover}
+    .stats{display:grid;gap:8px;font-size:13px}.bar{height:8px;border-radius:4px;background:rgba(255,255,255,.15);overflow:hidden;margin-top:3px}.bar>span{display:block;height:100%;width:50%;background:linear-gradient(to right,var(--neon-cyan),#ffe37f);box-shadow:0 0 10px rgba(47,243,224,.7);transition:width .25s ease}
+    .log{border:1px solid rgba(255,190,140,.35);border-radius:8px;padding:8px;background:rgba(10,5,28,.72);height:180px;overflow:auto;font-size:12px;line-height:1.55}
+    .controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto}
+    button{border:1px solid rgba(255,205,141,.5);border-radius:8px;padding:8px;background:linear-gradient(120deg,rgba(255,138,91,.2),rgba(142,88,255,.3));color:#fff3dd;cursor:pointer;font-size:13px}
+    button:hover{transform:translateY(-1px);box-shadow:0 0 10px rgba(255,150,190,.5)}
+    .right{display:flex;flex-direction:column;overflow:hidden}
+    .scene-head{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;font-size:14px}
+    .story{flex:1;padding:18px;overflow:auto;line-height:1.7;font-size:16px;text-shadow:0 0 6px rgba(255,116,179,.2);white-space:pre-line}
+    .choices{padding:12px;border-top:1px solid var(--line);display:grid;gap:8px;background:rgba(10,5,28,.78)}
+    .bg-layer{position:absolute;inset:0;pointer-events:none;opacity:.2;background-size:cover;transition:opacity .3s}
+    @media (max-width:860px){.app{grid-template-columns:1fr;height:auto;margin-bottom:2vh}.left{order:2}.right{min-height:70vh}}
   </style>
 </head>
 <body>
-  <div class="sun"></div>
-  <div class="grid"></div>
-
+  <div class="sun"></div><div class="grid"></div>
   <main class="app">
     <aside class="left">
-      <div class="cassette">
-        <h2>NEON TAPE_017</h2>
-        <div class="tiny">身份：夜航调酒师 / 情报中继员「零磁」</div>
-      </div>
+      <div class="cassette"><h2>NEON TAPE_017</h2><div class="tiny">身份：夜航调酒师 / 情报中继员「零磁」</div></div>
       <img id="portrait" class="portrait" alt="角色像素立绘" />
       <div id="charInfo" class="tiny"></div>
-
       <div class="stats">
         <div>理性 ↔ 感性<div class="bar"><span id="barLogic"></span></div></div>
         <div>合作 ↔ 对抗<div class="bar"><span id="barCoop"></span></div></div>
         <div>探索 ↔ 保守<div class="bar"><span id="barExplore"></span></div></div>
       </div>
-
+      <div class="tiny">剧情日志（可回看）</div>
+      <div id="logPanel" class="log"></div>
       <div class="controls">
-        <button id="saveBtn">保存存档</button>
-        <button id="loadBtn">读取存档</button>
-        <button id="resetBtn">重开本局</button>
-        <button id="bgmBtn">开启 BGM</button>
+        <button data-save="slot1">存档 1</button><button data-load="slot1">读档 1</button>
+        <button data-save="slot2">存档 2</button><button data-load="slot2">读档 2</button>
+        <button data-save="slot3">存档 3</button><button data-load="slot3">读档 3</button>
+        <button id="resetBtn">重开本局</button><button id="bgmBtn">开启 BGM</button>
       </div>
     </aside>
-
     <section class="right">
-      <div class="scene-head">
-        <strong id="sceneTitle">序章：磁带酒吧「太阳雨」</strong>
-        <span id="clock">22:11 / 雨夜</span>
-      </div>
+      <div class="scene-head"><strong id="sceneTitle">序章</strong><span id="clock">22:11 / 雨夜</span></div>
+      <div class="bg-layer" id="bgLayer"></div>
       <div id="story" class="story"></div>
       <div id="choices" class="choices"></div>
     </section>
   </main>
-
-  <script>
-    const pixelPortraits = {
-      zero: mkPortrait([
-        ['0','0','0','0','3','3','3','3','3','3','0','0','0','0','0','0'],
-        ['0','0','0','3','5','5','6','6','6','5','5','3','0','0','0','0'],
-        ['0','0','3','5','6','2','2','2','2','2','6','5','3','0','0','0'],
-        ['0','3','5','6','2','2','2','2','2','2','2','6','5','3','0','0'],
-        ['0','3','5','6','1','1','2','2','2','1','1','6','5','3','0','0'],
-        ['0','3','5','6','1','7','2','2','2','7','1','6','5','3','0','0'],
-        ['0','3','5','6','1','1','2','2','2','1','1','6','5','3','0','0'],
-        ['0','0','3','5','6','2','8','8','8','2','6','5','3','0','0','0'],
-        ['0','0','0','3','5','6','6','6','6','6','5','3','0','0','0','0'],
-        ['0','0','0','0','3','5','5','5','5','5','3','0','0','0','0','0'],
-        ['0','0','0','0','3','9','9','9','9','9','3','0','0','0','0','0'],
-        ['0','0','0','3','9','9','9','9','9','9','9','3','0','0','0','0'],
-        ['0','0','3','9','9','9','3','0','0','3','9','9','3','0','0','0'],
-        ['0','3','9','9','9','3','0','0','0','0','3','9','9','9','3','0'],
-        ['0','3','9','9','3','0','0','0','0','0','0','3','9','9','3','0'],
-        ['0','0','3','3','0','0','0','0','0','0','0','0','3','3','0','0'],
-      ]),
-      iris: mkPortrait([
-        ['0','0','0','0','4','4','4','4','4','4','0','0','0','0','0','0'],
-        ['0','0','0','4','5','5','5','6','6','5','5','4','0','0','0','0'],
-        ['0','0','4','5','6','6','2','2','2','2','6','5','4','0','0','0'],
-        ['0','4','5','6','2','2','2','2','2','2','2','6','5','4','0','0'],
-        ['0','4','5','6','2','1','1','2','2','1','1','6','5','4','0','0'],
-        ['0','4','5','6','2','1','7','2','2','7','1','6','5','4','0','0'],
-        ['0','4','5','6','2','1','1','2','2','1','1','6','5','4','0','0'],
-        ['0','0','4','5','6','2','8','8','8','2','6','5','4','0','0','0'],
-        ['0','0','0','4','5','6','6','6','6','6','5','4','0','0','0','0'],
-        ['0','0','0','0','4','4','5','5','5','4','4','0','0','0','0','0'],
-        ['0','0','0','0','3','3','3','3','3','3','3','0','0','0','0','0'],
-        ['0','0','0','3','9','9','9','9','9','9','9','3','0','0','0','0'],
-        ['0','0','3','9','9','9','3','0','0','3','9','9','3','0','0','0'],
-        ['0','3','9','9','9','3','0','0','0','0','3','9','9','9','3','0'],
-        ['0','3','9','9','3','0','0','0','0','0','0','3','9','9','3','0'],
-        ['0','0','3','3','0','0','0','0','0','0','0','0','3','3','0','0'],
-      ]),
-      voss: mkPortrait([
-        ['0','0','0','0','3','3','3','3','3','3','0','0','0','0','0','0'],
-        ['0','0','0','3','6','6','5','5','5','6','6','3','0','0','0','0'],
-        ['0','0','3','6','2','2','2','2','2','2','2','6','3','0','0','0'],
-        ['0','3','6','2','2','2','2','2','2','2','2','2','6','3','0','0'],
-        ['0','3','6','2','1','1','2','2','2','1','1','2','6','3','0','0'],
-        ['0','3','6','2','1','7','2','2','2','7','1','2','6','3','0','0'],
-        ['0','3','6','2','1','1','2','2','2','1','1','2','6','3','0','0'],
-        ['0','0','3','6','2','2','8','8','8','2','2','6','3','0','0','0'],
-        ['0','0','0','3','6','2','2','2','2','2','6','3','0','0','0','0'],
-        ['0','0','0','0','3','6','6','6','6','6','3','0','0','0','0','0'],
-        ['0','0','0','0','a','a','a','a','a','a','a','0','0','0','0','0'],
-        ['0','0','0','a','a','a','a','a','a','a','a','a','0','0','0','0'],
-        ['0','0','a','a','a','a','3','0','0','3','a','a','a','0','0','0'],
-        ['0','a','a','a','a','3','0','0','0','0','3','a','a','a','a','0'],
-        ['0','a','a','a','3','0','0','0','0','0','0','3','a','a','a','0'],
-        ['0','0','a','a','0','0','0','0','0','0','0','0','a','a','0','0'],
-      ])
-    };
-
-    function mkPortrait(grid) {
-      const palette = {
-        '0':'#140a24','1':'#ffd8c1','2':'#f7b08f','3':'#56f0ff','4':'#ff5aaa','5':'#bc71ff','6':'#3a205f','7':'#131326','8':'#ffed77','9':'#9ee7ff','a':'#ff9b4a'
-      };
-      const size = 16;
-      let rects = '';
-      grid.forEach((row, y) => {
-        row.forEach((c, x) => {
-          if (c !== '0') rects += `<rect x="${x}" y="${y}" width="1" height="1" fill="${palette[c]}" />`;
-        });
-      });
-      const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${size} ${size}' shape-rendering='crispEdges'>${rects}</svg>`;
-      return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-    }
-
-    const cast = {
-      zero: { name: '零磁（你）', desc: '磁带酒吧调酒师，兼职为底层街区传递加密情报。', img: pixelPortraits.zero },
-      iris: { name: '伊瑞丝', desc: '黑客记者，追踪城市中枢AI「天穹镜」的真相。', img: pixelPortraits.iris },
-      voss: { name: '沃斯队长', desc: '企业安保头目，宣称秩序是夜城最后的防线。', img: pixelPortraits.voss }
-    };
-
-    const scenes = [
-      {
-        title: '序章：磁带酒吧「太阳雨」',
-        speaker: 'iris',
-        text: '酸雨敲击霓虹招牌，伊瑞丝推门而入。\n“零磁，我需要一杯能让人说真话的酒，还有你的耳朵。”\n她要你帮忙潜入企业数据塔，拿到天穹镜对平民记忆改写的证据。',
-        choices: [
-          { text: '先问清计划与风险，逐条确认。', effect: { logic: 1, coop: 1 } },
-          { text: '直接答应，信任她的直觉和勇气。', effect: { emotion: 1, explore: 1 } },
-          { text: '拒绝卷入，建议她找别人。', effect: { preserve: 1, oppose: 1 } }
-        ]
-      },
-      {
-        title: '第一幕：镜面街区',
-        speaker: 'voss',
-        text: '你在后巷被沃斯拦下。\n“零磁，我知道你和伊瑞丝在查什么。交出她的行动路线，我保你酒吧平安。”\n他的义眼反射着城市广告：秩序、消费、服从。',
-        choices: [
-          { text: '与沃斯交换有限情报，换取街区停火。', effect: { logic: 1, coop: 1, preserve: 1 } },
-          { text: '当场拒绝并警告他别碰酒吧客人。', effect: { emotion: 1, oppose: 1 } },
-          { text: '假意答应，暗中布置双重陷阱。', effect: { logic: 1, explore: 1, oppose: 1 } }
-        ]
-      },
-      {
-        title: '第二幕：数据塔深层',
-        speaker: 'zero',
-        text: '电梯坠入塔底，服务器像无数磁带轮轴轰鸣。\n你发现天穹镜并非单纯统治工具，它在预测一场即将到来的能源崩溃。\n公开真相会引发恐慌，隐瞒则继续剥夺自由。',
-        choices: [
-          { text: '复制全部证据并公开，让民众自行选择。', effect: { emotion: 1, explore: 1, oppose: 1 } },
-          { text: '只公开记忆改写部分，崩溃预案暂时封存。', effect: { logic: 1, coop: 1, preserve: 1 } },
-          { text: '与AI直接对话，寻找第三种协议。', effect: { logic: 1, explore: 1, coop: 1 } }
-        ]
-      },
-      {
-        title: '终幕：黎明前协议',
-        speaker: 'iris',
-        text: '天边出现橘红色故障云，城市在静电中等待你的最后决定。\n伊瑞丝与沃斯都把目光投向你：一个调酒师，也许是今晚唯一的仲裁者。',
-        choices: [
-          { text: '站在民众一侧，发动全城信号广播。', effect: { emotion: 1, oppose: 1, explore: 1 } },
-          { text: '与企业签临时停战，建立过渡委员会。', effect: { logic: 1, coop: 1, preserve: 1 } },
-          { text: '将决策权分发给地下节点网络，去中心化管理。', effect: { explore: 1, coop: 1, emotion: 1 } }
-        ]
-      }
-    ];
-
-    const state = {
-      i: 0,
-      score: { logic: 0, emotion: 0, coop: 0, oppose: 0, explore: 0, preserve: 0 }
-    };
-
-    const storyEl = document.getElementById('story');
-    const choiceEl = document.getElementById('choices');
-    const titleEl = document.getElementById('sceneTitle');
-    const portraitEl = document.getElementById('portrait');
-    const charInfoEl = document.getElementById('charInfo');
-
-    function renderScene() {
-      const s = scenes[state.i];
-      titleEl.textContent = s.title;
-      storyEl.textContent = s.text;
-      const c = cast[s.speaker];
-      portraitEl.src = c.img;
-      charInfoEl.textContent = `${c.name}｜${c.desc}`;
-      choiceEl.innerHTML = '';
-      s.choices.forEach((ch) => {
-        const btn = document.createElement('button');
-        btn.textContent = ch.text;
-        btn.onclick = () => choose(ch.effect);
-        choiceEl.appendChild(btn);
-      });
-      renderBars();
-      autoSave();
-    }
-
-    function choose(effect) {
-      Object.entries(effect).forEach(([k,v]) => state.score[k] += v);
-      state.i += 1;
-      if (state.i >= scenes.length) return showEnding();
-      renderScene();
-    }
-
-    function renderBars() {
-      const meter = (a, b) => {
-        const total = Math.max(a + b, 1);
-        return `${(a / total) * 100}%`;
-      };
-      document.getElementById('barLogic').style.width = meter(state.score.logic, state.score.emotion);
-      document.getElementById('barCoop').style.width = meter(state.score.coop, state.score.oppose);
-      document.getElementById('barExplore').style.width = meter(state.score.explore, state.score.preserve);
-    }
-
-    function endingByScore() {
-      const {logic, emotion, coop, oppose, explore, preserve} = state.score;
-      if (logic >= emotion && coop >= oppose && preserve >= explore) {
-        return {
-          title: '结局A｜《琥珀停火》',
-          text: '你促成了企业、街区与媒体三方的短暂停战。\n天穹镜的部分权限被公开审计，能源崩溃预案逐步执行。\n夜城没有迎来革命，却获得了喘息：在橙色黎明里，人们第一次知道真相也可以被慢慢消化。\n你依旧守着酒吧吧台，成为各派谈判前必来的“中立频道”。'
-        };
-      }
-      if (emotion > logic && oppose >= coop) {
-        return {
-          title: '结局B｜《霓虹燃烧》',
-          text: '你与伊瑞丝将全部数据广播到每一块广告屏。\n城市在48小时内全面失控：抗议、断电、武装冲突与自由电台同时爆发。\n沃斯的防线崩塌，天穹镜主机被群众拆解。\n你从调酒师变成了革命符号，但也亲眼看见了自由的代价——每一条街都在流血。'
-        };
-      }
-      return {
-        title: '结局C｜《磁带群星》',
-        text: '你拒绝任何单一权威，把天穹镜核心切成无数自治协议，分发给地下节点。\n城市不再有“中心”，只有彼此校验的社群网络。\n伊瑞丝成了流动档案官，沃斯则转为节点守备者。\n而你在酒吧里维护那台老旧磁带机：每个夜晚，新的城市宪章都被录进下一卷磁带。'
-      };
-    }
-
-    function showEnding() {
-      const end = endingByScore();
-      titleEl.textContent = '结局回放';
-      storyEl.innerHTML = `<div class='ending-title'>${end.title}</div>${end.text}`;
-      choiceEl.innerHTML = '';
-      const btn = document.createElement('button');
-      btn.textContent = '再来一局';
-      btn.onclick = resetGame;
-      choiceEl.appendChild(btn);
-      autoSave(true);
-    }
-
-    function save(slot='manual') {
-      localStorage.setItem(`neonTape_${slot}`, JSON.stringify(state));
-    }
-
-    function autoSave(isEnd=false) {
-      save('auto');
-      if (isEnd) save('ending');
-    }
-
-    function load(slot='manual') {
-      const raw = localStorage.getItem(`neonTape_${slot}`) || localStorage.getItem('neonTape_auto');
-      if (!raw) return alert('没有可读取的存档，将从开头开始。');
-      const data = JSON.parse(raw);
-      state.i = data.i;
-      state.score = data.score;
-      if (state.i >= scenes.length) showEnding();
-      else renderScene();
-    }
-
-    function resetGame() {
-      state.i = 0;
-      state.score = { logic: 0, emotion: 0, coop: 0, oppose: 0, explore: 0, preserve: 0 };
-      renderScene();
-    }
-
-    document.getElementById('saveBtn').onclick = () => { save('manual'); alert('已保存到本地存档。'); };
-    document.getElementById('loadBtn').onclick = () => load('manual');
-    document.getElementById('resetBtn').onclick = resetGame;
-
-    // 轻量合成器 BGM（无需外部音频文件）
-    let bgmOn = false;
-    let bgmCtx;
-    let timer;
-    function tone(freq, time, len, type='sawtooth', gain=0.02) {
-      const o = bgmCtx.createOscillator();
-      const g = bgmCtx.createGain();
-      o.type = type;
-      o.frequency.value = freq;
-      g.gain.value = gain;
-      o.connect(g).connect(bgmCtx.destination);
-      o.start(time);
-      o.stop(time + len);
-    }
-    function playLoop() {
-      const now = bgmCtx.currentTime;
-      const bass = [110, 98, 82, 73];
-      const lead = [220, 247, 196, 165, 220, 247, 277, 247];
-      bass.forEach((f, i) => tone(f, now + i * 0.5, 0.45, 'square', 0.018));
-      lead.forEach((f, i) => tone(f, now + i * 0.25, 0.18, 'triangle', 0.012));
-      tone(659, now + 1.9, 0.08, 'sine', 0.01);
-    }
-    document.getElementById('bgmBtn').onclick = async (e) => {
-      if (!bgmOn) {
-        bgmCtx = bgmCtx || new (window.AudioContext || window.webkitAudioContext)();
-        if (bgmCtx.state === 'suspended') await bgmCtx.resume();
-        playLoop();
-        timer = setInterval(playLoop, 2000);
-        bgmOn = true;
-        e.target.textContent = '关闭 BGM';
-      } else {
-        clearInterval(timer);
-        bgmOn = false;
-        e.target.textContent = '开启 BGM';
-      }
-    };
-
-    renderScene();
-  </script>
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>
