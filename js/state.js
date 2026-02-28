@@ -18,6 +18,8 @@ export const createInitialState = () => ({
   choiceHistory: [],
   orderHistory: [],
   orderDrafts: {},
+  pathHistory: [],
+  clearedRuns: [],
   unlockedEndings: [],
   bgmEnabled: false,
   bgmVolume: 0.5
@@ -44,6 +46,8 @@ export function normalizeState(raw = {}) {
   normalized.choiceHistory = Array.isArray(raw.choiceHistory) ? raw.choiceHistory : [];
   normalized.orderHistory = Array.isArray(raw.orderHistory) ? raw.orderHistory : [];
   normalized.orderDrafts = raw.orderDrafts && typeof raw.orderDrafts === 'object' ? raw.orderDrafts : {};
+  normalized.pathHistory = Array.isArray(raw.pathHistory) ? raw.pathHistory : [];
+  normalized.clearedRuns = Array.isArray(raw.clearedRuns) ? raw.clearedRuns : [];
   normalized.unlockedEndings = Array.isArray(raw.unlockedEndings) ? raw.unlockedEndings : [];
   normalized.bgmEnabled = typeof raw.bgmEnabled === 'boolean' ? raw.bgmEnabled : false;
   normalized.bgmVolume = typeof raw.bgmVolume === 'number' ? raw.bgmVolume : 0.5;

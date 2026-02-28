@@ -131,11 +131,35 @@ export const scenes = {
     ]
   },
   s07: {
-    title: '终段前夜：路由抉择',
+    title: '终段前夜：路由复盘',
     speaker: 'zero',
     expression: 'angry',
     bg: 'bar',
     text: (st) => `你回看整夜档案：\n- Rational↔Emotional：${st.score.rational}\n- Cooperate↔Confront：${st.score.cooperate}\n- Explore↔Conserve：${st.score.explore}\n\n线索是否完整，将决定终章落点。`,
+    choices: [
+      { text: '先把线索分层，做一次应急彩排。', effect: { logic: 1, preserve: 1 }, next: 's08' },
+      { text: '不等了，边行动边修正。', effect: { emotion: 1, explore: 1 }, next: 's08' }
+    ]
+  },
+  s08: {
+    title: '路由彩排：0:47 紧急会签',
+    speaker: 'zero',
+    expression: 'neutral',
+    bg: 'backroom',
+    text: (st) => st.flags.policeWarrant
+      ? '你把搜查倒计时投到墙上，所有人都明白：下一步必须兼顾速度与可追责。'
+      : '你把三方反馈整成一张“最小可执行路线图”，距离天亮还剩 43 分钟。',
+    choices: [
+      { text: '优先保障民生系统，压缩公开范围。', effect: { coop: 1, preserve: 1 }, next: 's09' },
+      { text: '优先保障真相完整，接受短时冲击。', effect: { oppose: 1, explore: 1 }, next: 's09' }
+    ]
+  },
+  s09: {
+    title: '终段抉择：最终路由选择',
+    speaker: 'zero',
+    expression: 'angry',
+    bg: 'bar',
+    text: '所有磁带开始同步转动。你必须在停火、爆燃、群星三条路由中做最终签名。',
     choices: [
       { text: '补全泄露稿，准备城市级公开。', if: { flagsAll: ['truthLeakDraft'], itemAny: ['memoryTape'] }, effect: { explore: 1, oppose: 1 }, setFlags: ['truthLeakDraft'], routeLock: true, next: 's10B' },
       { text: '走审计停火线，优先保住电网。', if: { flagsAll: ['corpDeal'], flagsAny: ['barShielded'], relAtLeast: { name: 'liaison', val: 1 } }, effect: { logic: 1, coop: 1 }, routeLock: true, next: 's10A' },
